@@ -94,6 +94,8 @@ export interface Goal {
   targetDate: string;
   status: GoalStatus;
   priority: 'low' | 'medium' | 'high';
+  plannedMonthlyContribution?: number;
+  expectedAnnualReturnPercent?: number;
 }
 
 export type RiskProfileBand = 'conservative' | 'moderate' | 'growth';
@@ -176,6 +178,16 @@ export interface AdvisorCallbackRequest {
   status: AdvisorCallbackStatus;
   createdAt: string;
 }
+
+export type {
+  CreateGoalPriority,
+  CreateGoalRequest,
+  GoalAchievabilityStatus,
+  GoalProjection,
+  GoalProjectionAssumptions,
+  GoalResponse,
+  StepUpSuggestion,
+} from './goal-planner.js';
 
 export type {
   CategoryMonthOverMonthChange,

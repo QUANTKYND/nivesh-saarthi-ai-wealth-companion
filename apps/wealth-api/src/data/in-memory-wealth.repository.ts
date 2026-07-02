@@ -841,6 +841,8 @@ const goals: Goal[] = [
     targetDate: '2027-06-30',
     status: 'active',
     priority: 'high',
+    plannedMonthlyContribution: 10000,
+    expectedAnnualReturnPercent: 5,
   },
   {
     id: 'goal-f-001',
@@ -853,6 +855,8 @@ const goals: Goal[] = [
     targetDate: '2032-04-01',
     status: 'active',
     priority: 'high',
+    plannedMonthlyContribution: 35000,
+    expectedAnnualReturnPercent: 8,
   },
   {
     id: 'goal-f-002',
@@ -865,6 +869,8 @@ const goals: Goal[] = [
     targetDate: '2027-12-15',
     status: 'active',
     priority: 'medium',
+    plannedMonthlyContribution: 15000,
+    expectedAnnualReturnPercent: 6,
   },
 ];
 
@@ -1097,6 +1103,27 @@ export class InMemoryWealthRepository {
   findGoalsByCustomerId(customerId: string): Goal[] {
     this.findCustomerById(customerId);
     return goals.filter((item) => item.customerId === customerId);
+  }
+
+  findGoalByCustomerId(customerId: string, goalId: string): Goal {
+    this.findCustomerById(customerId);
+    const goal = goals.find(
+      (item) => item.customerId === customerId && item.id === goalId,
+    );
+
+    if (!goal) {
+      throw new NotFoundException(
+        `Goal ${goalId} for customer ${customerId} was not found`,
+      );
+    }
+
+    return goal;
+  }
+
+  createGoal(goal: Goal): Goal {
+    this.findCustomerById(goal.customerId);
+    goals.push(goal);
+    return goal;
   }
 
   findRiskProfileByCustomerId(customerId: string): RiskProfile {
