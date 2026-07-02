@@ -18,11 +18,14 @@
 - [x] Risk questionnaire backend API.
 - [x] Deterministic risk profile scoring engine.
 - [x] Risk profile safety overrides and explainable results.
+- [x] Bank-approved product catalog with recommendation product types.
+- [x] Rule-based recommendation generation API.
+- [x] Recommendation suitability, allocation, warnings, and disclaimers.
 
 ## Deferred Milestones
 
 - [ ] Risk profile wizard frontend.
-- [ ] Rule-based recommendations.
+- [ ] Recommendation review frontend.
 - [ ] Avatar advisor chat.
 - [ ] Human advisor callback flow.
 - [ ] Audit and compliance review UI.

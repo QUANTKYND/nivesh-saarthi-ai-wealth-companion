@@ -213,6 +213,119 @@ Error responses:
 
 - `404` when `customerId` does not exist or no risk profile is available.
 
+## Recommendations
+
+### `GET /api/customers/:customerId/recommendations`
+
+Lists seeded and generated recommendations for a customer.
+
+Path parameters:
+
+- `customerId` - Customer identifier from `GET /api/customers`.
+
+Response body:
+
+```json
+[
+  {
+    "id": "rec-f-001",
+    "customerId": "cust-family-001",
+    "productId": "prod-ins-001",
+    "title": "Review family protection coverage",
+    "reasoning": "Dependents and education goals make protection planning important before higher risk allocation.",
+    "disclaimer": "This is a mock bank-approved suggestion for demo purposes, not personalized financial advice.",
+    "status": "shown",
+    "createdAt": "2026-06-24T10:15:00.000Z"
+  }
+]
+```
+
+Generated recommendations use the `RecommendationResult` shape returned by the POST endpoint and are appended to the same list.
+
+### `POST /api/customers/:customerId/recommendations`
+
+Generates a deterministic, rule-based recommendation using customer data, selected goal, spending insights, emergency fund coverage, EMI burden, risk profile, idle balance, and approved product catalog.
+
+Request body:
+
+```json
+{
+  "goalId": "goal-f-001",
+  "monthlyInvestmentCapacity": 10000
+}
+```
+
+`monthlyInvestmentCapacity` is optional. When omitted, the engine uses goal planned contribution, then minimum investable surplus, then 25% of monthly surplus.
+
+Response body:
+
+```json
+{
+  "recommendationId": "rec-cust-family-001-1782993600000",
+  "customerId": "cust-family-001",
+  "goalId": "goal-f-001",
+  "suitability": "SUITABLE",
+  "riskProfile": "MODERATE",
+  "recommendedPlan": {
+    "name": "Balanced SIP + Safety Plan",
+    "description": "A rule-based plan using bank-approved products aligned to goal, affordability, and risk profile.",
+    "monthlyAmount": 10000,
+    "oneTimeAmount": 100000,
+    "allocation": [
+      {
+        "productId": "prod-rd-001",
+        "productName": "IDBI Goal Builder Recurring Deposit",
+        "productType": "RECURRING_DEPOSIT",
+        "percentage": 20,
+        "monthlyAmount": 2000,
+        "oneTimeAmount": 100000,
+        "rationale": "Maintains a stable base for the plan."
+      },
+      {
+        "productId": "prod-mf-balanced-001",
+        "productName": "IDBI Balanced Mutual Fund Basket",
+        "productType": "BALANCED_MF_BASKET",
+        "percentage": 70,
+        "monthlyAmount": 7000,
+        "oneTimeAmount": 0,
+        "rationale": "Dominant balanced exposure fits a long-term goal."
+      }
+    ]
+  },
+  "reasoning": [
+    "Customer has a MODERATE risk profile.",
+    "Goal horizon is 69 months.",
+    "Recommended monthly amount is capped at INR 10,000 based on affordability rules."
+  ],
+  "riskWarnings": ["Market-linked investments can fluctuate and returns are not guaranteed."],
+  "disclaimer": "This recommendation is based on available banking data, stated goal, and risk profile. Market-linked investments are subject to risk. Returns are not guaranteed. Please review product documents or speak to a certified advisor before investing.",
+  "nextBestAction": {
+    "type": "START_SIP",
+    "label": "Start recommended SIP",
+    "description": "Proceed to review the recommended monthly investment plan."
+  },
+  "createdAt": "2026-07-02T12:00:00.000Z"
+}
+```
+
+Validation and guardrails:
+
+- `customerId` must exist.
+- `goalId` is required and must belong to the customer.
+- `monthlyInvestmentCapacity`, when provided, must be greater than or equal to `0`.
+- A risk profile is required before any market-linked recommendation is generated.
+- Monthly amount is capped by provided capacity, investable surplus maximum, and 50% of monthly surplus.
+- Negative or zero surplus returns `NOT_SUITABLE` with advisor review.
+- Weak emergency funds prioritize FD/RD-style stable products.
+- High EMI burden reduces the monthly amount and avoids aggressive allocation.
+- Conservative customers never receive `EQUITY_SIP_BASKET`.
+- Every response includes reasoning, suitability, next best action, disclaimer, and market risk warning when market-linked products are included.
+
+Error responses:
+
+- `400` for missing `goalId` or invalid monthly capacity.
+- `404` when `customerId` or `goalId` does not exist.
+
 ## Spending Insights
 
 ### `GET /api/customers/:customerId/spending-insights`
