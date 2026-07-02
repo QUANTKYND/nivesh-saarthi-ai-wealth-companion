@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@wealth/api/*": ["apps/wealth-api/src/*"],
+      "@wealth/shared-types": ["packages/shared-types/src/index.ts"],
+      "@wealth/shared-types/*": ["packages/shared-types/src/*"],
+      "@wealth/web/*": ["apps/wealth-web/src/*"]
+    }
+  }
+}
