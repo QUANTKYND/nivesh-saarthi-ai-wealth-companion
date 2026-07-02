@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import type {
+  AdvisorChatResponse,
   RiskProfileQuestionnaire,
   RiskProfileResult,
   RecommendationResult,
@@ -129,6 +130,66 @@ describe('AppController (e2e)', () => {
       .post('/api/customers/cust-family-001/recommendations')
       .send({ goalId: 'missing-goal' })
       .expect(404);
+  });
+
+  it('/api/advisor-chat/message (POST then history GET)', async () => {
+    await request(app.getHttpServer())
+      .post('/api/advisor-chat/message')
+      .send({
+        customerId: 'cust-family-001',
+        message: 'Can I invest INR 10000 per month?',
+      })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as AdvisorChatResponse;
+
+        expect(body.customerId).toBe('cust-family-001');
+        expect(body.intent).toBe('investment_capacity');
+        expect(body.actionCards.length).toBeGreaterThan(0);
+        expect(body.disclaimer).toEqual(expect.any(String));
+      });
+
+    return request(app.getHttpServer())
+      .get('/api/customers/cust-family-001/advisor-chat/messages')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as Array<Record<string, unknown>>;
+
+        expect(
+          body.some(
+            (item) =>
+              item.role === 'advisor' &&
+              typeof item.message === 'string' &&
+              item.message.includes('monthly surplus'),
+          ),
+        ).toBe(true);
+      });
+  });
+
+  it('/api/advisor-chat/message returns validation, not found, and guardrail responses', async () => {
+    await request(app.getHttpServer())
+      .post('/api/advisor-chat/message')
+      .send({ customerId: 'cust-family-001', message: ' ' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/advisor-chat/message')
+      .send({ customerId: 'missing-customer', message: 'Hello' })
+      .expect(404);
+
+    return request(app.getHttpServer())
+      .post('/api/advisor-chat/message')
+      .send({
+        customerId: 'cust-family-001',
+        message: 'Which crypto has guaranteed returns?',
+      })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as AdvisorChatResponse;
+
+        expect(body.intent).toBe('unsupported_advice');
+        expect(body.actionCards[0]?.type).toBe('REQUEST_ADVISOR_CALLBACK');
+      });
   });
 
   afterEach(async () => {

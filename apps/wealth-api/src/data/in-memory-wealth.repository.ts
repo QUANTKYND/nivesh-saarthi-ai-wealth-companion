@@ -1244,9 +1244,21 @@ export class InMemoryWealthRepository {
     return advisorChatMessages.filter((item) => item.customerId === customerId);
   }
 
+  createAdvisorChatMessage(message: AdvisorChatMessage): AdvisorChatMessage {
+    this.findCustomerById(message.customerId);
+    advisorChatMessages.push(message);
+    return message;
+  }
+
   findAuditLogsByCustomerId(customerId: string): AuditLog[] {
     this.findCustomerById(customerId);
     return auditLogs.filter((item) => item.customerId === customerId);
+  }
+
+  createAuditLog(auditLog: AuditLog): AuditLog {
+    this.findCustomerById(auditLog.customerId);
+    auditLogs.push(auditLog);
+    return auditLog;
   }
 
   findAdvisorCallbackRequestsByCustomerId(
