@@ -3,12 +3,16 @@ import AnalyticsIcon from '@mui/icons-material/Analytics';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import FlagIcon from '@mui/icons-material/Flag';
 import InsightsIcon from '@mui/icons-material/Insights';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import SendIcon from '@mui/icons-material/Send';
 import SecurityIcon from '@mui/icons-material/Security';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import {
+  Alert,
   AppBar,
   Box,
   Button,
@@ -17,20 +21,26 @@ import {
   CssBaseline,
   Divider,
   FormControl,
+  IconButton,
   LinearProgress,
   MenuItem,
   Select,
   Stack,
+  TextField,
   ThemeProvider,
   Toolbar,
   Typography,
   createTheme,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material/Select';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Scrollbars } from 'react-custom-scrollbars-next';
 import type {
+  AdvisorChatActionCard,
+  AdvisorChatMessage,
+  AdvisorChatResponse,
   Customer,
   Goal,
   InvestmentAllocationItem,
@@ -102,6 +112,14 @@ const theme = createTheme({
 
 function App() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [chatDraft, setChatDraft] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [latestChatResponse, setLatestChatResponse] = useState<AdvisorChatResponse | null>(null);
+  const queryClient = useQueryClient();
+  const spendingSectionRef = useRef<HTMLElement | null>(null);
+  const goalsSectionRef = useRef<HTMLElement | null>(null);
+  const riskSectionRef = useRef<HTMLElement | null>(null);
+  const recommendationsSectionRef = useRef<HTMLElement | null>(null);
   const customersQuery = useQuery({
     queryKey: ['customers'],
     queryFn: wealthApi.getCustomers,
@@ -134,11 +152,70 @@ function App() {
     queryFn: () => wealthApi.getRecommendations(activeCustomerId),
     enabled: Boolean(activeCustomerId),
   });
+  const advisorChatQuery = useQuery({
+    queryKey: ['advisor-chat-messages', activeCustomerId],
+    queryFn: () => wealthApi.getAdvisorChatMessages(activeCustomerId),
+    enabled: Boolean(activeCustomerId),
+  });
+  const sendChatMutation = useMutation({
+    mutationFn: wealthApi.sendAdvisorChatMessage,
+    onSuccess: (response) => {
+      setLatestChatResponse(response);
+      setChatDraft('');
+      void queryClient.invalidateQueries({
+        queryKey: ['advisor-chat-messages', response.customerId],
+      });
+    },
+  });
 
   const activeCustomer = customers.find((customer) => customer.id === activeCustomerId) ?? null;
 
   const handleCustomerChange = (event: SelectChangeEvent<string>) => {
     setSelectedCustomerId(event.target.value);
+    setLatestChatResponse(null);
+    setChatDraft('');
+  };
+
+  const openChat = () => {
+    setIsChatOpen(true);
+  };
+
+  const handleSendChatMessage = (message: string) => {
+    const trimmedMessage = message.trim();
+
+    if (!activeCustomerId || !trimmedMessage) {
+      return;
+    }
+
+    sendChatMutation.mutate({
+      customerId: activeCustomerId,
+      message: trimmedMessage,
+    });
+  };
+
+  const handleActionCard = (actionCard: AdvisorChatActionCard) => {
+    const target =
+      actionCard.type === 'OPEN_SPENDING_INSIGHTS'
+        ? spendingSectionRef.current
+        : actionCard.type === 'OPEN_GOAL_PLANNER'
+          ? goalsSectionRef.current
+          : actionCard.type === 'OPEN_RISK_PROFILE'
+            ? riskSectionRef.current
+            : actionCard.type === 'OPEN_RECOMMENDATIONS'
+              ? recommendationsSectionRef.current
+              : null;
+
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (actionCard.type === 'REQUEST_ADVISOR_CALLBACK') {
+      setChatDraft('Request advisor callback');
+      setIsChatOpen(true);
+      return;
+    }
+
+    if (target) {
+      setIsChatOpen(false);
+    }
   };
 
   return (
@@ -210,6 +287,7 @@ function App() {
               goals={goalsQuery.data}
               riskProfile={riskProfileQuery.data}
               recommendations={recommendationsQuery.data}
+              onOpenChat={openChat}
             />
 
             <SectionStatus
@@ -239,11 +317,13 @@ function App() {
                 onRetry={() => void spendingInsightsQuery.refetch()}
                 label="spending insights"
               >
-                {spendingInsightsQuery.data ? (
-                  <SpendingInsightsPanel insights={spendingInsightsQuery.data} />
-                ) : (
-                  <EmptyState title="No spending insights available" />
-                )}
+                <Box ref={spendingSectionRef}>
+                  {spendingInsightsQuery.data ? (
+                    <SpendingInsightsPanel insights={spendingInsightsQuery.data} />
+                  ) : (
+                    <EmptyState title="No spending insights available" />
+                  )}
+                </Box>
               </SectionStatus>
 
               <Stack spacing={3}>
@@ -253,7 +333,9 @@ function App() {
                   onRetry={() => void goalsQuery.refetch()}
                   label="goals"
                 >
-                  <GoalsPreview goals={goalsQuery.data ?? []} />
+                  <Box ref={goalsSectionRef}>
+                    <GoalsPreview goals={goalsQuery.data ?? []} />
+                  </Box>
                 </SectionStatus>
 
                 <SectionStatus
@@ -262,7 +344,9 @@ function App() {
                   onRetry={() => void riskProfileQuery.refetch()}
                   label="risk profile"
                 >
-                  <RiskProfileStatus riskProfile={riskProfileQuery.data} />
+                  <Box ref={riskSectionRef}>
+                    <RiskProfileStatus riskProfile={riskProfileQuery.data} />
+                  </Box>
                 </SectionStatus>
 
                 <SectionStatus
@@ -271,15 +355,48 @@ function App() {
                   onRetry={() => void recommendationsQuery.refetch()}
                   label="recommendations"
                 >
-                  <RecommendationPreview
-                    recommendations={recommendationsQuery.data ?? []}
-                    hasGoals={(goalsQuery.data?.length ?? 0) > 0}
-                  />
+                  <Box ref={recommendationsSectionRef}>
+                    <RecommendationPreview
+                      recommendations={recommendationsQuery.data ?? []}
+                      hasGoals={(goalsQuery.data?.length ?? 0) > 0}
+                    />
+                  </Box>
                 </SectionStatus>
               </Stack>
             </Box>
           </Stack>
         </Box>
+
+        <AvatarChatLauncher
+          isOpen={isChatOpen}
+          hasMessages={(advisorChatQuery.data?.length ?? 0) > 0}
+          onOpen={openChat}
+        />
+
+        {isChatOpen ? (
+          <AvatarChatPopup onClose={() => setIsChatOpen(false)}>
+            <SectionStatus
+              isLoading={advisorChatQuery.isLoading}
+              error={advisorChatQuery.error}
+              onRetry={() => void advisorChatQuery.refetch()}
+              label="advisor chat"
+            >
+              <AvatarChatPanel
+                customerId={activeCustomerId}
+                messages={advisorChatQuery.data ?? []}
+                draft={chatDraft}
+                latestResponse={
+                  latestChatResponse?.customerId === activeCustomerId ? latestChatResponse : null
+                }
+                isSending={sendChatMutation.isPending}
+                sendError={sendChatMutation.error}
+                onDraftChange={setChatDraft}
+                onSend={handleSendChatMessage}
+                onActionCard={handleActionCard}
+              />
+            </SectionStatus>
+          </AvatarChatPopup>
+        ) : null}
       </Box>
     </ThemeProvider>
   );
@@ -307,6 +424,102 @@ function CustomerSwitcher(props: {
         ))}
       </Select>
     </FormControl>
+  );
+}
+
+function AvatarChatLauncher(props: { isOpen: boolean; hasMessages: boolean; onOpen: () => void }) {
+  if (props.isOpen) {
+    return null;
+  }
+
+  return (
+    <IconButton
+      onClick={props.onOpen}
+      aria-label="Open advisor chat"
+      sx={{
+        position: 'fixed',
+        right: { xs: 16, md: 28 },
+        bottom: { xs: 16, md: 28 },
+        zIndex: 1200,
+        width: 58,
+        height: 58,
+        bgcolor: 'primary.main',
+        color: 'common.white',
+        boxShadow: 8,
+        '&:hover': {
+          bgcolor: 'primary.dark',
+        },
+      }}
+      size="large"
+    >
+      <ChatBubbleOutlineIcon />
+    </IconButton>
+  );
+}
+
+function AvatarChatPopup(props: { children: ReactNode; onClose: () => void }) {
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        right: { xs: 12, md: 28 },
+        bottom: { xs: 12, md: 28 },
+        width: { xs: 'calc(100vw - 24px)', sm: 440 },
+        maxWidth: 'calc(100vw - 24px)',
+        height: { xs: 'min(680px, calc(100vh - 24px))', sm: 680 },
+        maxHeight: 'calc(100vh - 24px)',
+        zIndex: 1300,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        boxShadow: 12,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{
+          px: 1.5,
+          py: 1,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'primary.dark',
+          color: 'common.white',
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+          <ChatBubbleOutlineIcon fontSize="small" />
+          <Typography fontWeight={800} noWrap>
+            Avatar advisor
+          </Typography>
+        </Stack>
+        <IconButton
+          size="small"
+          onClick={props.onClose}
+          sx={{
+            color: 'common.white',
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Stack>
+
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          p: 1.25,
+          overflow: 'hidden',
+        }}
+      >
+        {props.children}
+      </Box>
+    </Box>
   );
 }
 
@@ -406,6 +619,7 @@ function AvatarAdvisorCard(props: {
   goals?: Goal[];
   riskProfile: RiskProfileResult | null | undefined;
   recommendations?: DashboardRecommendation[];
+  onOpenChat: () => void;
 }) {
   const readiness = useMemo(() => {
     const items = [
@@ -474,6 +688,249 @@ function AvatarAdvisorCard(props: {
               variant={item.complete ? 'filled' : 'outlined'}
               size="small"
             />
+          ))}
+          <Button
+            variant="contained"
+            endIcon={<ChatBubbleOutlineIcon />}
+            onClick={props.onOpenChat}
+          >
+            Ask advisor
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
+  );
+}
+
+const suggestedPrompts = [
+  'Can I invest INR 10,000 per month?',
+  'How is my spending this month?',
+  'Help me create a goal.',
+  'Explain my recommendation.',
+  'Should I complete my risk profile?',
+  'Request advisor callback.',
+];
+
+function AvatarChatPanel(props: {
+  customerId: string;
+  messages: AdvisorChatMessage[];
+  draft: string;
+  latestResponse: AdvisorChatResponse | null;
+  isSending: boolean;
+  sendError: Error | null;
+  onDraftChange: (value: string) => void;
+  onSend: (message: string) => void;
+  onActionCard: (actionCard: AdvisorChatActionCard) => void;
+}) {
+  const visibleMessages = props.messages.slice(-8);
+
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.25,
+      }}
+    >
+      <Alert severity="info" variant="outlined" sx={{ flex: '0 0 auto' }}>
+        Ask about spending, affordability, goals, risk profiling, or existing recommendations.
+        Product choices stay controlled by backend rules.
+      </Alert>
+
+      <Box
+        sx={{
+          flex: '1 1 auto',
+          minHeight: 0,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          bgcolor: '#f9fbfb',
+          overflow: 'hidden',
+        }}
+      >
+        <Scrollbars
+          autoHide
+          autoHideTimeout={700}
+          autoHideDuration={160}
+          universal
+          renderTrackVertical={(scrollbarProps) => (
+            <Box
+              {...scrollbarProps}
+              sx={{
+                position: 'absolute',
+                width: 6,
+                right: 4,
+                top: 4,
+                bottom: 4,
+                borderRadius: 999,
+              }}
+            />
+          )}
+          renderThumbVertical={(scrollbarProps) => (
+            <Box
+              {...scrollbarProps}
+              sx={{
+                bgcolor: 'rgba(18, 76, 99, 0.38)',
+                borderRadius: 999,
+              }}
+            />
+          )}
+        >
+          <Box sx={{ p: 1.25 }}>
+            {visibleMessages.length === 0 ? (
+              <EmptyState
+                title="Start with a suggested prompt"
+                description="The advisor can explain data-backed insights and route you to approved next steps."
+              />
+            ) : (
+              <Stack spacing={1.25}>
+                {visibleMessages.map((message) => (
+                  <ChatMessageBubble key={message.id} message={message} />
+                ))}
+              </Stack>
+            )}
+          </Box>
+        </Scrollbars>
+      </Box>
+
+      <Stack
+        direction="row"
+        spacing={0.75}
+        flexWrap="wrap"
+        useFlexGap
+        sx={{
+          flex: '0 0 auto',
+          maxHeight: 74,
+          overflow: 'hidden',
+        }}
+      >
+        {suggestedPrompts.map((prompt) => (
+          <Chip
+            key={prompt}
+            label={prompt}
+            variant="outlined"
+            size="small"
+            onClick={() => props.onSend(prompt)}
+            disabled={props.isSending || !props.customerId}
+          />
+        ))}
+      </Stack>
+
+      {props.latestResponse ? (
+        <AdvisorResponseActions response={props.latestResponse} onActionCard={props.onActionCard} />
+      ) : null}
+
+      {props.sendError ? (
+        <Alert severity="error" variant="outlined" sx={{ flex: '0 0 auto' }}>
+          Could not send the message. Check the API server and try again.
+        </Alert>
+      ) : null}
+
+      <Box
+        component="form"
+        sx={{ flex: '0 0 auto' }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          props.onSend(props.draft);
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="flex-end">
+          <TextField
+            fullWidth
+            multiline
+            minRows={1}
+            maxRows={3}
+            size="small"
+            value={props.draft}
+            onChange={(event) => props.onDraftChange(event.target.value)}
+            placeholder="Ask your wealth advisor..."
+            disabled={props.isSending || !props.customerId}
+          />
+          <IconButton
+            type="submit"
+            color="primary"
+            disabled={props.isSending || !props.customerId || !props.draft.trim()}
+            sx={{
+              width: 42,
+              height: 42,
+              bgcolor: 'primary.main',
+              color: 'common.white',
+              '&:hover': {
+                bgcolor: 'primary.dark',
+              },
+              '&.Mui-disabled': {
+                bgcolor: 'action.disabledBackground',
+              },
+            }}
+          >
+            {props.isSending ? <CircularProgress size={18} /> : <SendIcon />}
+          </IconButton>
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
+
+function ChatMessageBubble({ message }: { message: AdvisorChatMessage }) {
+  const isCustomer = message.role === 'customer';
+  const isSystem = message.role === 'system';
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: isCustomer ? 'flex-end' : 'flex-start',
+      }}
+    >
+      <Box
+        sx={{
+          maxWidth: { xs: '92%', md: '76%' },
+          bgcolor: isCustomer ? 'primary.main' : isSystem ? 'warning.light' : 'background.paper',
+          color: isCustomer ? 'common.white' : 'text.primary',
+          border: '1px solid',
+          borderColor: isCustomer ? 'primary.main' : 'divider',
+          borderRadius: 2,
+          p: 1.25,
+          overflowWrap: 'anywhere',
+        }}
+      >
+        <Typography variant="caption" sx={{ opacity: 0.75 }}>
+          {isCustomer ? 'You' : isSystem ? 'Guardrail' : 'Advisor'}
+        </Typography>
+        <Typography sx={{ mt: 0.25 }}>{message.message}</Typography>
+      </Box>
+    </Box>
+  );
+}
+
+function AdvisorResponseActions(props: {
+  response: AdvisorChatResponse;
+  onActionCard: (actionCard: AdvisorChatActionCard) => void;
+}) {
+  return (
+    <Box
+      sx={{
+        border: '1px solid',
+        borderColor: props.response.intent === 'unsupported_advice' ? 'warning.main' : 'divider',
+        borderRadius: 1,
+        p: 1.5,
+      }}
+    >
+      <Stack spacing={1.25}>
+        <Typography variant="h3">Advisor response actions</Typography>
+        <Typography color="text.secondary">{props.response.disclaimer}</Typography>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {props.response.actionCards.map((actionCard) => (
+            <Button
+              key={`${actionCard.type}-${actionCard.label}`}
+              variant="outlined"
+              endIcon={<ArrowForwardIcon />}
+              onClick={() => props.onActionCard(actionCard)}
+            >
+              {actionCard.label}
+            </Button>
           ))}
         </Stack>
       </Stack>

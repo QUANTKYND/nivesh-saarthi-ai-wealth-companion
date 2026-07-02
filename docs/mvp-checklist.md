@@ -27,12 +27,13 @@
 - [x] Frontend wealth dashboard shell.
 - [x] Dashboard API client and TanStack Query hooks.
 - [x] Customer switcher and dashboard loading/error/empty states.
+- [x] Avatar advisor chat UI.
+- [x] Suggested prompts, response action cards, and disclaimer rendering.
 
 ## Deferred Milestones
 
 - [ ] Goal planner frontend.
 - [ ] Risk profile wizard frontend.
 - [ ] Recommendation review frontend.
-- [ ] Avatar advisor chat UI.
 - [ ] Human advisor callback flow.
 - [ ] Audit and compliance review UI.

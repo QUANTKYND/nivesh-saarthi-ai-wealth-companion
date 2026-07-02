@@ -162,6 +162,9 @@ importers:
       react:
         specifier: ^19.2.7
         version: 19.2.7
+      react-custom-scrollbars-next:
+        specifier: ^1.0.1
+        version: 1.0.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom:
         specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
@@ -3328,6 +3331,12 @@ packages:
   raw-body@3.0.2:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
+
+  react-custom-scrollbars-next@1.0.1:
+    resolution: {integrity: sha512-1+77WmeMZ/xuBOHllOxKhWbaAJ5U5DRBHtmPczenrmKJ0RVHmzXb/z1I2on8zDQbjhTFI0Fg4daks47D8aXOLg==}
+    peerDependencies:
+      react: ^19.2.4
+      react-dom: ^19.2.4
 
   react-dom@19.2.7:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
@@ -7396,6 +7405,11 @@ snapshots:
       http-errors: 2.0.1
       iconv-lite: 0.7.2
       unpipe: 1.0.0
+
+  react-custom-scrollbars-next@1.0.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:
