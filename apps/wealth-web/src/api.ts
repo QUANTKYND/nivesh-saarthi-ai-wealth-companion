@@ -1,4 +1,7 @@
 import type {
+  AdvisorChatMessage,
+  AdvisorChatRequest,
+  AdvisorChatResponse,
   Customer,
   Goal,
   Recommendation,
@@ -31,6 +34,22 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
   return (await response.json()) as TResponse;
 }
 
+async function postJson<TRequest, TResponse>(path: string, body: TRequest): Promise<TResponse> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`Request failed with status ${response.status}`, response.status);
+  }
+
+  return (await response.json()) as TResponse;
+}
+
 export type DashboardRecommendation = Recommendation | RecommendationResult;
 
 export const wealthApi = {
@@ -53,4 +72,8 @@ export const wealthApi = {
   },
   getRecommendations: (customerId: string) =>
     getJson<DashboardRecommendation[]>(`/customers/${customerId}/recommendations`),
+  getAdvisorChatMessages: (customerId: string) =>
+    getJson<AdvisorChatMessage[]>(`/customers/${customerId}/advisor-chat/messages`),
+  sendAdvisorChatMessage: (request: AdvisorChatRequest) =>
+    postJson<AdvisorChatRequest, AdvisorChatResponse>('/advisor-chat/message', request),
 };

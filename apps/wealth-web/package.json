@@ -20,6 +20,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@wealth/shared-types": "workspace:*",
     "react": "^19.2.7",
+    "react-custom-scrollbars-next": "^1.0.1",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
