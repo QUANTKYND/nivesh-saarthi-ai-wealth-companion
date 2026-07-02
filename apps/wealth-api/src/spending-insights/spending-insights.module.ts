@@ -8,5 +8,6 @@ import { SpendingInsightsService } from './spending-insights.service';
   imports: [WealthDataModule],
   controllers: [SpendingInsightsController],
   providers: [SpendingInsightsCalculatorService, SpendingInsightsService],
+  exports: [SpendingInsightsCalculatorService, SpendingInsightsService],
 })
 export class SpendingInsightsModule {}

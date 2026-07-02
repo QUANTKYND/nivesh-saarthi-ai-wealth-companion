@@ -183,3 +183,117 @@ Notes:
 - Recurring subscriptions require the same merchant in at least 2 different months.
 - Discretionary spend includes shopping, dining, travel, and subscriptions.
 - EMI burden warnings are returned only for elevated or high debt burden.
+
+## Goal Planner
+
+### `GET /api/customers/:customerId/goals`
+
+Lists goals for a customer.
+
+Path parameters:
+
+- `customerId` - Customer identifier from `GET /api/customers`.
+
+Response body:
+
+```json
+[
+  {
+    "id": "goal-f-001",
+    "customerId": "cust-family-001",
+    "name": "Children's Higher Education",
+    "type": "education",
+    "targetAmount": 3500000,
+    "currentAmount": 1250000,
+    "currency": "INR",
+    "targetDate": "2032-04-01",
+    "status": "active",
+    "priority": "high",
+    "plannedMonthlyContribution": 35000,
+    "expectedAnnualReturnPercent": 8
+  }
+]
+```
+
+### `POST /api/customers/:customerId/goals`
+
+Creates a new goal for a customer.
+
+Request body:
+
+```json
+{
+  "goalType": "education",
+  "name": "Child Education",
+  "targetAmount": 1000000,
+  "currentSavings": 100000,
+  "targetDate": "2031-07-01",
+  "priority": "HIGH",
+  "plannedMonthlyContribution": 10000,
+  "expectedAnnualReturnPercent": 8
+}
+```
+
+Validation:
+
+- `customerId` must exist.
+- `targetAmount` must be greater than `0`.
+- `currentSavings` must be greater than or equal to `0`.
+- `targetDate` must be in the future.
+- `plannedMonthlyContribution`, when provided, must be greater than or equal to `0`.
+- `expectedAnnualReturnPercent`, when provided, must be between `0` and `15`.
+- `goalType` must be one of the shared goal types.
+- `priority` must be `LOW`, `MEDIUM`, or `HIGH`.
+
+### `GET /api/customers/:customerId/goals/:goalId/projection`
+
+Returns deterministic goal projection calculations.
+
+Response body:
+
+```json
+{
+  "goalId": "goal-f-001",
+  "customerId": "cust-family-001",
+  "goalName": "Children's Higher Education",
+  "goalType": "education",
+  "targetAmount": 3500000,
+  "currentSavings": 1250000,
+  "targetDate": "2032-04-01",
+  "monthsRemaining": 68,
+  "plannedMonthlyContribution": 35000,
+  "expectedAnnualReturnPercent": 8,
+  "requiredMonthlyContribution": 30175,
+  "projectedAmount": 3820000,
+  "shortfallOrSurplus": 320000,
+  "achievabilityStatus": "ACHIEVABLE",
+  "stepUpSuggestion": {
+    "isRequired": false,
+    "suggestedAnnualStepUpPercent": null,
+    "estimatedProjectedAmountWithStepUp": null,
+    "explanation": "Your current plan is projected to meet this goal."
+  },
+  "assumptions": {
+    "compoundingFrequency": "MONTHLY",
+    "inflationAdjusted": false,
+    "returnsAreIllustrative": true
+  },
+  "explanations": [
+    "You have 68 months remaining for this goal.",
+    "At your planned contribution of INR 35,000 per month, you may exceed the target by around INR 3,20,000.",
+    "Your current plan is projected to meet this goal."
+  ],
+  "calculatedAt": "2026-07-02T12:00:00.000Z"
+}
+```
+
+Error responses:
+
+- `400` when create-goal validation fails.
+- `404` when `customerId` or `goalId` does not exist.
+
+Notes:
+
+- Projections use monthly compounding.
+- Returns are illustrative and not guaranteed.
+- When planned monthly contribution is omitted, the API uses a conservative fallback from spending insights.

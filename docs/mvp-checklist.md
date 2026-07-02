@@ -13,10 +13,11 @@
 - [x] Deterministic wealth readiness score.
 - [x] Spending insights backend API.
 - [x] Deterministic transaction insight engine.
+- [x] Goal planner backend APIs.
+- [x] Deterministic goal projection engine.
 
 ## Deferred Milestones
 
-- [ ] Goal planning workflow.
 - [ ] Risk profile wizard.
 - [ ] Rule-based recommendations.
 - [ ] Avatar advisor chat.
