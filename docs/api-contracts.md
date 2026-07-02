@@ -83,6 +83,136 @@ Notes:
 - EMI burden uses debit transactions whose descriptions indicate EMI, loan repayment, or credit card payment.
 - Readiness scoring is deterministic and split across savings rate, emergency fund, EMI burden, diversification, and planning readiness.
 
+## Risk Profiling
+
+### `GET /api/risk-profile/questions`
+
+Returns the deterministic single-choice risk profiling questionnaire.
+
+Response body:
+
+```json
+{
+  "questions": [
+    {
+      "id": "investment_horizon",
+      "label": "How long can you stay invested for this goal?",
+      "description": "Longer investment horizons can usually support more market-linked exposure.",
+      "type": "SINGLE_CHOICE",
+      "required": true,
+      "options": [
+        {
+          "id": "less_than_1_year",
+          "label": "Less than 1 year",
+          "score": 0,
+          "explanation": "A short horizon requires a conservative suitability stance."
+        },
+        {
+          "id": "more_than_5_years",
+          "label": "More than 5 years",
+          "score": 3,
+          "explanation": "A longer horizon can support higher growth-oriented suitability."
+        }
+      ]
+    }
+  ]
+}
+```
+
+Notes:
+
+- The questionnaire contains 8 required questions: investment horizon, income stability, loss tolerance, emergency fund status, investment experience, liquidity needs, dependence on invested funds, and investment objective.
+- Options are scored deterministically. The maximum score is `23`.
+
+### `POST /api/customers/:customerId/risk-profile`
+
+Submits questionnaire answers, applies deterministic scoring and safety overrides, stores the latest result in memory, and returns the updated risk profile.
+
+Request body, abbreviated here; all eight required answers must be present:
+
+```json
+{
+  "answers": [
+    {
+      "questionId": "investment_horizon",
+      "optionId": "more_than_5_years"
+    },
+    {
+      "questionId": "loss_tolerance",
+      "optionId": "moderate_fluctuation"
+    }
+  ]
+}
+```
+
+Response body:
+
+```json
+{
+  "customerId": "cust-family-001",
+  "category": "MODERATE",
+  "score": 15,
+  "maxScore": 23,
+  "scorePercent": 65.22,
+  "investmentHorizonYears": 5,
+  "lossTolerance": "MEDIUM",
+  "incomeStability": "MEDIUM",
+  "liquidityNeed": "LOW",
+  "investmentExperience": "INTERMEDIATE",
+  "scoreBreakdown": [
+    {
+      "questionId": "investment_horizon",
+      "label": "How long can you stay invested for this goal?",
+      "selectedOptionId": "3_to_5_years",
+      "selectedOptionLabel": "3 to 5 years",
+      "score": 2,
+      "maxScore": 3,
+      "explanation": "A medium horizon can support balanced market-linked exposure."
+    }
+  ],
+  "explanation": [
+    "Your profile is Moderate because you can tolerate some fluctuation and have a reasonable investment horizon."
+  ],
+  "suitabilityNotes": [
+    "Risk profile does not create a product recommendation by itself.",
+    "Recommendations must use only bank-approved products and include required disclaimers."
+  ],
+  "updatedAt": "2026-07-02T12:00:00.000Z"
+}
+```
+
+Validation:
+
+- `customerId` must exist.
+- All 8 required questions must be answered.
+- Each `questionId` must be part of the central questionnaire.
+- Each `optionId` must belong to the submitted question.
+- Duplicate answers for the same question are rejected.
+
+Scoring:
+
+- `0-8` maps to `CONSERVATIVE`.
+- `9-16` maps to `MODERATE`.
+- `17-23` maps to `AGGRESSIVE`.
+- `less_than_1_year` investment horizon caps the result at `CONSERVATIVE`.
+- `no_emergency_fund` caps the result at `MODERATE`.
+- `cannot_tolerate_loss` forces `CONSERVATIVE`.
+- `need_money_anytime` liquidity need caps the result at `CONSERVATIVE`.
+- Age 60+ or retired customers with low loss tolerance remain `CONSERVATIVE`.
+
+Error responses:
+
+- `400` for invalid, duplicate, or missing answers.
+- `404` when `customerId` does not exist.
+
+### `GET /api/customers/:customerId/risk-profile`
+
+Returns the stored risk profile result for a customer. Seeded legacy risk profiles are adapted into the Milestone 5 result shape until the customer submits the questionnaire.
+
+Error responses:
+
+- `404` when `customerId` does not exist or no risk profile is available.
+
 ## Spending Insights
 
 ### `GET /api/customers/:customerId/spending-insights`

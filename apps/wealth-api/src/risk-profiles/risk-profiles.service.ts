@@ -1,12 +1,92 @@
 import { Injectable } from '@nestjs/common';
-import type { RiskProfile } from '@wealth/shared-types';
+import type {
+  RiskProfile,
+  RiskProfileResult,
+  SubmitRiskProfileRequest,
+} from '@wealth/shared-types';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
+import { riskProfileQuestionnaire } from './risk-questionnaire';
+import { RiskProfileScoringService } from './risk-profile-scoring.service';
 
 @Injectable()
 export class RiskProfilesService {
-  constructor(private readonly repository: InMemoryWealthRepository) {}
+  constructor(
+    private readonly repository: InMemoryWealthRepository,
+    private readonly scoringService: RiskProfileScoringService,
+  ) {}
 
-  findByCustomerId(customerId: string): RiskProfile {
-    return this.repository.findRiskProfileByCustomerId(customerId);
+  getQuestionnaire() {
+    return riskProfileQuestionnaire;
+  }
+
+  findByCustomerId(customerId: string): RiskProfileResult {
+    const submittedProfile =
+      this.repository.findSubmittedRiskProfileResultByCustomerId(customerId);
+
+    if (submittedProfile) {
+      return submittedProfile;
+    }
+
+    return this.toResult(
+      this.repository.findRiskProfileByCustomerId(customerId),
+    );
+  }
+
+  submit(
+    customerId: string,
+    request: SubmitRiskProfileRequest,
+  ): RiskProfileResult {
+    const customer = this.repository.findCustomerById(customerId);
+    const result = this.scoringService.score(customer, request);
+
+    return this.repository.upsertRiskProfileResult(result);
+  }
+
+  private toResult(riskProfile: RiskProfile): RiskProfileResult {
+    return {
+      customerId: riskProfile.customerId,
+      category: this.toCategory(riskProfile.band),
+      score: this.legacyScoreToRawScore(riskProfile.score),
+      maxScore: 23,
+      scorePercent: riskProfile.score,
+      investmentHorizonYears: riskProfile.horizonYears,
+      lossTolerance:
+        riskProfile.band === 'conservative'
+          ? 'LOW'
+          : riskProfile.band === 'moderate'
+            ? 'MEDIUM'
+            : 'HIGH',
+      incomeStability: riskProfile.band === 'conservative' ? 'MEDIUM' : 'HIGH',
+      liquidityNeed: riskProfile.band === 'growth' ? 'LOW' : 'MEDIUM',
+      investmentExperience:
+        riskProfile.band === 'growth'
+          ? 'ADVANCED'
+          : riskProfile.band === 'moderate'
+            ? 'INTERMEDIATE'
+            : 'BASIC',
+      scoreBreakdown: [],
+      explanation: riskProfile.notes,
+      suitabilityNotes: [
+        'This seeded profile was adapted from the legacy MVP risk band.',
+        'A fresh questionnaire submission will provide a full score breakdown.',
+      ],
+      updatedAt: riskProfile.assessedAt,
+    };
+  }
+
+  private toCategory(
+    riskBand: RiskProfile['band'],
+  ): RiskProfileResult['category'] {
+    if (riskBand === 'conservative') {
+      return 'CONSERVATIVE';
+    }
+    if (riskBand === 'moderate') {
+      return 'MODERATE';
+    }
+    return 'AGGRESSIVE';
+  }
+
+  private legacyScoreToRawScore(scorePercent: number): number {
+    return Math.round((scorePercent / 100) * 23);
   }
 }

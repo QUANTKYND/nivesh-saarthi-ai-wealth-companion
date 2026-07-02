@@ -9,6 +9,7 @@ import type {
   ProductCatalogItem,
   Recommendation,
   RiskProfile,
+  RiskProfileResult,
   SpendingCategory,
   Transaction,
 } from '@wealth/shared-types';
@@ -910,6 +911,8 @@ const riskProfiles: RiskProfile[] = [
   },
 ];
 
+const submittedRiskProfileResults: RiskProfileResult[] = [];
+
 const productCatalog: ProductCatalogItem[] = [
   {
     id: 'prod-fd-001',
@@ -1128,6 +1131,14 @@ export class InMemoryWealthRepository {
 
   findRiskProfileByCustomerId(customerId: string): RiskProfile {
     this.findCustomerById(customerId);
+    const submittedRiskProfile = submittedRiskProfileResults.find(
+      (item) => item.customerId === customerId,
+    );
+
+    if (submittedRiskProfile) {
+      return this.toLegacyRiskProfile(submittedRiskProfile);
+    }
+
     const riskProfile = riskProfiles.find(
       (item) => item.customerId === customerId,
     );
@@ -1139,6 +1150,30 @@ export class InMemoryWealthRepository {
     }
 
     return riskProfile;
+  }
+
+  findSubmittedRiskProfileResultByCustomerId(
+    customerId: string,
+  ): RiskProfileResult | undefined {
+    this.findCustomerById(customerId);
+    return submittedRiskProfileResults.find(
+      (item) => item.customerId === customerId,
+    );
+  }
+
+  upsertRiskProfileResult(result: RiskProfileResult): RiskProfileResult {
+    this.findCustomerById(result.customerId);
+    const existingIndex = submittedRiskProfileResults.findIndex(
+      (item) => item.customerId === result.customerId,
+    );
+
+    if (existingIndex >= 0) {
+      submittedRiskProfileResults[existingIndex] = result;
+      return result;
+    }
+
+    submittedRiskProfileResults.push(result);
+    return result;
   }
 
   findProductCatalog(): ProductCatalogItem[] {
@@ -1169,5 +1204,29 @@ export class InMemoryWealthRepository {
     return advisorCallbackRequests.filter(
       (item) => item.customerId === customerId,
     );
+  }
+
+  private toLegacyRiskProfile(result: RiskProfileResult): RiskProfile {
+    return {
+      id: `risk-${result.customerId}`,
+      customerId: result.customerId,
+      band: this.toLegacyRiskBand(result.category),
+      score: result.scorePercent,
+      assessedAt: result.updatedAt,
+      horizonYears: result.investmentHorizonYears,
+      notes: result.explanation,
+    };
+  }
+
+  private toLegacyRiskBand(
+    category: RiskProfileResult['category'],
+  ): RiskProfile['band'] {
+    if (category === 'CONSERVATIVE') {
+      return 'conservative';
+    }
+    if (category === 'MODERATE') {
+      return 'moderate';
+    }
+    return 'growth';
   }
 }

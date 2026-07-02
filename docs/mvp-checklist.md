@@ -15,10 +15,13 @@
 - [x] Deterministic transaction insight engine.
 - [x] Goal planner backend APIs.
 - [x] Deterministic goal projection engine.
+- [x] Risk questionnaire backend API.
+- [x] Deterministic risk profile scoring engine.
+- [x] Risk profile safety overrides and explainable results.
 
 ## Deferred Milestones
 
-- [ ] Risk profile wizard.
+- [ ] Risk profile wizard frontend.
 - [ ] Rule-based recommendations.
 - [ ] Avatar advisor chat.
 - [ ] Human advisor callback flow.

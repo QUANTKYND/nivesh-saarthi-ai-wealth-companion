@@ -213,3 +213,19 @@ export type {
   WealthProfile,
   WealthReadinessBand,
 } from './wealth-profile.js';
+
+export type {
+  RiskProfileCategory,
+  RiskProfileIncomeStability,
+  RiskProfileInvestmentExperience,
+  RiskProfileLiquidityNeed,
+  RiskProfileLossTolerance,
+  RiskProfileQuestion,
+  RiskProfileQuestionnaire,
+  RiskProfileQuestionOption,
+  RiskProfileQuestionType,
+  RiskProfileResult,
+  RiskProfileScoreBreakdown,
+  SubmitRiskProfileAnswer,
+  SubmitRiskProfileRequest,
+} from './risk-profile.js';
