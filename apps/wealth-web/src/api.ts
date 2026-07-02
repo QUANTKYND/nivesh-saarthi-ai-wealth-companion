@@ -3,7 +3,10 @@ import type {
   AdvisorChatRequest,
   AdvisorChatResponse,
   Customer,
+  CreateGoalRequest,
   Goal,
+  GoalProjection,
+  GoalResponse,
   Recommendation,
   RecommendationResult,
   RiskProfileResult,
@@ -28,7 +31,7 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
   const response = await fetch(`${apiBaseUrl}${path}`);
 
   if (!response.ok) {
-    throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    throw new ApiError(await extractErrorMessage(response), response.status);
   }
 
   return (await response.json()) as TResponse;
@@ -44,10 +47,34 @@ async function postJson<TRequest, TResponse>(path: string, body: TRequest): Prom
   });
 
   if (!response.ok) {
-    throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    throw new ApiError(await extractErrorMessage(response), response.status);
   }
 
   return (await response.json()) as TResponse;
+}
+
+async function extractErrorMessage(response: Response): Promise<string> {
+  try {
+    const payload = (await response.json()) as
+      | { message?: string | string[]; error?: string }
+      | undefined;
+
+    if (payload && typeof payload.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+
+    if (payload && Array.isArray(payload.message) && payload.message.length > 0) {
+      return payload.message.join(', ');
+    }
+
+    if (payload && typeof payload.error === 'string' && payload.error.trim()) {
+      return payload.error;
+    }
+  } catch {
+    // Fall through to the generic status message.
+  }
+
+  return `Request failed with status ${response.status}`;
 }
 
 export type DashboardRecommendation = Recommendation | RecommendationResult;
@@ -59,6 +86,10 @@ export const wealthApi = {
   getSpendingInsights: (customerId: string) =>
     getJson<SpendingInsights>(`/customers/${customerId}/spending-insights`),
   getGoals: (customerId: string) => getJson<Goal[]>(`/customers/${customerId}/goals`),
+  createGoal: (customerId: string, request: CreateGoalRequest) =>
+    postJson<CreateGoalRequest, GoalResponse>(`/customers/${customerId}/goals`, request),
+  getGoalProjection: (customerId: string, goalId: string) =>
+    getJson<GoalProjection>(`/customers/${customerId}/goals/${goalId}/projection`),
   getRiskProfile: async (customerId: string) => {
     try {
       return await getJson<RiskProfileResult>(`/customers/${customerId}/risk-profile`);

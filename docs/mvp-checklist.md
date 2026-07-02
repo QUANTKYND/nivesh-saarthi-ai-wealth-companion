@@ -32,7 +32,7 @@
 
 ## Deferred Milestones
 
-- [ ] Goal planner frontend.
+- [x] Goal planner frontend.
 - [ ] Risk profile wizard frontend.
 - [ ] Recommendation review frontend.
 - [ ] Human advisor callback flow.
