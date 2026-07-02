@@ -10,6 +10,7 @@ import { GoalsModule } from './goals/goals.module';
 import { ProductCatalogModule } from './product-catalog/product-catalog.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { RiskProfilesModule } from './risk-profiles/risk-profiles.module';
+import { SpendingInsightsModule } from './spending-insights/spending-insights.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { WealthDashboardModule } from './wealth-dashboard/wealth-dashboard.module';
 
@@ -24,6 +25,7 @@ import { WealthDashboardModule } from './wealth-dashboard/wealth-dashboard.modul
     ProductCatalogModule,
     RecommendationsModule,
     RiskProfilesModule,
+    SpendingInsightsModule,
     TransactionsModule,
     WealthDashboardModule,
   ],

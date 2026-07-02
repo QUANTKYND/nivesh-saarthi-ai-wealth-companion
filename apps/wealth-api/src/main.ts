@@ -26,6 +26,7 @@ async function bootstrap() {
     .addTag('audit-logs')
     .addTag('advisor-callbacks')
     .addTag('wealth-dashboard')
+    .addTag('spending-insights')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

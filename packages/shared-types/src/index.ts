@@ -60,6 +60,7 @@ export type SpendingCategory =
   | 'dining'
   | 'travel'
   | 'entertainment'
+  | 'subscriptions'
   | 'cash-withdrawal'
   | 'miscellaneous';
 
@@ -175,6 +176,23 @@ export interface AdvisorCallbackRequest {
   status: AdvisorCallbackStatus;
   createdAt: string;
 }
+
+export type {
+  CategoryMonthOverMonthChange,
+  CategorySpendBreakdownItem,
+  DiscretionarySpendStatus,
+  DiscretionarySpendSummary,
+  EmiBurdenStatus,
+  EmiBurdenSummary,
+  InsightSeverity,
+  InvestableSurplusEstimate,
+  RecurringSubscriptionInsight,
+  SpendingChangeDirection,
+  SpendingInsightMessage,
+  SpendingInsights,
+  SpendingInsightsPeriod,
+  SpendingInsightType,
+} from './spending-insights.js';
 
 export type {
   CustomerSegment,
