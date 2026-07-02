@@ -62,8 +62,8 @@ The `master` branch is locked. All changes must go through pull requests.
 Fork the repository and clone your fork:
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/QUANTKYND/nivesh-saarthi-ai-wealth-companion.git
+cd nivesh-saarthi-ai-wealth-companion
 ```
 
 ### 2. Install Dependencies

@@ -326,6 +326,101 @@ Error responses:
 - `400` for missing `goalId` or invalid monthly capacity.
 - `404` when `customerId` or `goalId` does not exist.
 
+## Advisor Chat
+
+### `GET /api/customers/:customerId/advisor-chat/messages`
+
+Lists persisted advisor chat messages for a customer.
+
+Path parameters:
+
+- `customerId` - Customer identifier from `GET /api/customers`.
+
+Response body:
+
+```json
+[
+  {
+    "id": "chat-y-001",
+    "customerId": "cust-young-001",
+    "role": "customer",
+    "message": "Can I save faster for my emergency fund?",
+    "createdAt": "2026-06-25T09:00:00.000Z",
+    "isAuditable": true
+  }
+]
+```
+
+### `POST /api/advisor-chat/message`
+
+Accepts a customer chat message, classifies intent deterministically, generates a controlled response from backend data, returns UI action cards, persists both messages, and writes audit logs.
+
+Request body:
+
+```json
+{
+  "customerId": "cust-family-001",
+  "message": "Can I invest INR 10000 per month?"
+}
+```
+
+Response body:
+
+```json
+{
+  "conversationId": "chat-cust-family-001",
+  "customerId": "cust-family-001",
+  "intent": "investment_capacity",
+  "response": "INR 10,000 appears within your current investable surplus estimate. Your monthly surplus is INR 69,000, EMI burden is 0.0%, and emergency fund coverage is 5.2 months. A final recommendation still requires a selected goal and completed risk profile.",
+  "actionCards": [
+    {
+      "type": "OPEN_RECOMMENDATIONS",
+      "label": "View recommendations",
+      "description": "Generate or review a bank-approved recommendation.",
+      "payload": {
+        "customerId": "cust-family-001"
+      }
+    }
+  ],
+  "disclaimer": "This is affordability guidance based on available banking data, not a product recommendation or guaranteed return claim.",
+  "createdAt": "2026-07-02T12:00:00.000Z"
+}
+```
+
+Supported intents:
+
+- `spending_summary`
+- `investment_capacity`
+- `create_goal_help`
+- `risk_profile_help`
+- `recommendation_explanation`
+- `emergency_fund_check`
+- `advisor_callback`
+- `unsupported_advice`
+- `unknown`
+
+Supported action card types:
+
+- `OPEN_SPENDING_INSIGHTS`
+- `OPEN_GOAL_PLANNER`
+- `OPEN_RISK_PROFILE`
+- `OPEN_RECOMMENDATIONS`
+- `REQUEST_ADVISOR_CALLBACK`
+
+Guardrails:
+
+- Crypto recommendations are blocked.
+- Individual stock tips are blocked.
+- Guaranteed return claims are blocked.
+- Tax/legal advice requests are redirected to advisor support.
+- Chat does not choose products or allocations.
+- Market-linked recommendations must come from the recommendation engine.
+
+Error responses:
+
+- `400` when `customerId` or `message` is missing or blank.
+- `404` when `customerId` does not exist.
+
 ## Spending Insights
 
 ### `GET /api/customers/:customerId/spending-insights`

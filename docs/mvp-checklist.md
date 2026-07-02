@@ -21,11 +21,14 @@
 - [x] Bank-approved product catalog with recommendation product types.
 - [x] Rule-based recommendation generation API.
 - [x] Recommendation suitability, allocation, warnings, and disclaimers.
+- [x] Controlled advisor chat backend API.
+- [x] Deterministic advisor chat intent handling and fallback responses.
+- [x] Advisor chat guardrails and audit logging.
 
 ## Deferred Milestones
 
 - [ ] Risk profile wizard frontend.
 - [ ] Recommendation review frontend.
-- [ ] Avatar advisor chat.
+- [ ] Avatar advisor chat UI.
 - [ ] Human advisor callback flow.
 - [ ] Audit and compliance review UI.

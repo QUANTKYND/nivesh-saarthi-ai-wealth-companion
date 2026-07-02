@@ -164,6 +164,8 @@ export type AuditLogAction =
   | 'customer_profile_viewed'
   | 'recommendation_viewed'
   | 'advisor_chat_message_recorded'
+  | 'advisor_chat_response_generated'
+  | 'advisor_chat_guardrail_blocked'
   | 'advisor_callback_requested';
 
 export interface AuditLog {
@@ -187,6 +189,15 @@ export interface AdvisorCallbackRequest {
   status: AdvisorCallbackStatus;
   createdAt: string;
 }
+
+export type {
+  AdvisorChatActionCard,
+  AdvisorChatActionPayload,
+  AdvisorChatActionType,
+  AdvisorChatIntent,
+  AdvisorChatRequest,
+  AdvisorChatResponse,
+} from './advisor-chat.js';
 
 export type {
   CreateGoalPriority,
