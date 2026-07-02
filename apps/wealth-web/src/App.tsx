@@ -5,9 +5,10 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
-import FlagIcon from '@mui/icons-material/Flag';
 import InsightsIcon from '@mui/icons-material/Insights';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
 import SecurityIcon from '@mui/icons-material/Security';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -16,12 +17,19 @@ import {
   AppBar,
   Box,
   Button,
+  ButtonBase,
   Chip,
   CircularProgress,
   CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
+  FormHelperText,
   IconButton,
+  InputAdornment,
   LinearProgress,
   MenuItem,
   Select,
@@ -41,8 +49,12 @@ import type {
   AdvisorChatActionCard,
   AdvisorChatMessage,
   AdvisorChatResponse,
+  CreateGoalPriority,
+  CreateGoalRequest,
   Customer,
   Goal,
+  GoalProjection,
+  GoalType,
   InvestmentAllocationItem,
   Recommendation,
   RecommendationResult,
@@ -112,6 +124,10 @@ const theme = createTheme({
 
 function App() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [selectedGoalId, setSelectedGoalId] = useState<string>('');
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [goalForm, setGoalForm] = useState<GoalFormState>(() => createBlankGoalForm());
+  const [goalFormErrors, setGoalFormErrors] = useState<GoalFormErrors>({});
   const [chatDraft, setChatDraft] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [latestChatResponse, setLatestChatResponse] = useState<AdvisorChatResponse | null>(null);
@@ -142,6 +158,19 @@ function App() {
     queryFn: () => wealthApi.getGoals(activeCustomerId),
     enabled: Boolean(activeCustomerId),
   });
+  const resolvedSelectedGoalId =
+    goalsQuery.data?.some((goal) => goal.id === selectedGoalId)
+      ? selectedGoalId
+      : goalsQuery.data?.[0]?.id ?? '';
+  const selectedGoal = useMemo(
+    () => goalsQuery.data?.find((goal) => goal.id === resolvedSelectedGoalId) ?? null,
+    [goalsQuery.data, resolvedSelectedGoalId],
+  );
+  const goalProjectionQuery = useQuery({
+    queryKey: ['goal-projection', activeCustomerId, resolvedSelectedGoalId],
+    queryFn: () => wealthApi.getGoalProjection(activeCustomerId, resolvedSelectedGoalId),
+    enabled: Boolean(activeCustomerId && resolvedSelectedGoalId),
+  });
   const riskProfileQuery = useQuery({
     queryKey: ['risk-profile', activeCustomerId],
     queryFn: () => wealthApi.getRiskProfile(activeCustomerId),
@@ -167,11 +196,41 @@ function App() {
       });
     },
   });
+  const createGoalMutation = useMutation({
+    mutationFn: ({ customerId, request }: { customerId: string; request: CreateGoalRequest }) =>
+      wealthApi.createGoal(customerId, request),
+    onSuccess: (createdGoal) => {
+      queryClient.setQueryData<Goal[]>(['goals', createdGoal.customerId], (currentGoals = []) => {
+        if (currentGoals.some((goal) => goal.id === createdGoal.id)) {
+          return currentGoals;
+        }
+
+        return [...currentGoals, createdGoal];
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['goals', createdGoal.customerId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['goal-projection', createdGoal.customerId],
+      });
+      setSelectedGoalId(createdGoal.id);
+      resetGoalForm();
+      setIsGoalDialogOpen(false);
+    },
+  });
 
   const activeCustomer = customers.find((customer) => customer.id === activeCustomerId) ?? null;
+  const resetGoalForm = () => {
+    setGoalForm(createBlankGoalForm());
+    setGoalFormErrors({});
+    createGoalMutation.reset();
+  };
 
   const handleCustomerChange = (event: SelectChangeEvent<string>) => {
     setSelectedCustomerId(event.target.value);
+    setSelectedGoalId('');
+    setIsGoalDialogOpen(false);
+    resetGoalForm();
     setLatestChatResponse(null);
     setChatDraft('');
   };
@@ -191,6 +250,43 @@ function App() {
       customerId: activeCustomerId,
       message: trimmedMessage,
     });
+  };
+
+  const openGoalDialog = () => {
+    resetGoalForm();
+    setGoalFormErrors({});
+    setIsGoalDialogOpen(true);
+  };
+
+  const handleGoalFieldChange = <K extends keyof GoalFormState>(
+    field: K,
+    value: GoalFormState[K],
+  ) => {
+    setGoalForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleCreateGoal = () => {
+    const validationErrors = validateGoalForm(goalForm);
+    setGoalFormErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0 || !activeCustomerId) {
+      return;
+    }
+
+    const request = buildGoalRequest(goalForm);
+
+    createGoalMutation.mutate({
+      customerId: activeCustomerId,
+      request,
+    });
+  };
+
+  const handleUseGoalForRecommendation = (goalId: string) => {
+    setSelectedGoalId(goalId);
+    recommendationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleActionCard = (actionCard: AdvisorChatActionCard) => {
@@ -334,7 +430,20 @@ function App() {
                   label="goals"
                 >
                   <Box ref={goalsSectionRef}>
-                    <GoalsPreview goals={goalsQuery.data ?? []} />
+                    <GoalsPanel
+                      goals={goalsQuery.data ?? []}
+                      selectedGoalId={selectedGoalId}
+                      selectedGoal={selectedGoal}
+                      projection={goalProjectionQuery.data}
+                      isProjectionLoading={goalProjectionQuery.isLoading}
+                      projectionError={goalProjectionQuery.error}
+                      isCreatingGoal={createGoalMutation.isPending}
+                      createGoalError={createGoalMutation.error}
+                      onOpenCreateGoal={openGoalDialog}
+                      onSelectGoal={setSelectedGoalId}
+                      onRetryProjection={() => void goalProjectionQuery.refetch()}
+                      onUseGoalForRecommendation={handleUseGoalForRecommendation}
+                    />
                   </Box>
                 </SectionStatus>
 
@@ -359,6 +468,7 @@ function App() {
                     <RecommendationPreview
                       recommendations={recommendationsQuery.data ?? []}
                       hasGoals={(goalsQuery.data?.length ?? 0) > 0}
+                      selectedGoal={selectedGoal}
                     />
                   </Box>
                 </SectionStatus>
@@ -397,6 +507,20 @@ function App() {
             </SectionStatus>
           </AvatarChatPopup>
         ) : null}
+
+        <GoalCreateDialog
+          open={isGoalDialogOpen}
+          form={goalForm}
+          errors={goalFormErrors}
+          isSubmitting={createGoalMutation.isPending}
+          error={createGoalMutation.error}
+          onClose={() => {
+            setIsGoalDialogOpen(false);
+            resetGoalForm();
+          }}
+          onFieldChange={handleGoalFieldChange}
+          onSubmit={handleCreateGoal}
+        />
       </Box>
     </ThemeProvider>
   );
@@ -1059,57 +1183,578 @@ function SpendingInsightsPanel({ insights }: { insights: SpendingInsights }) {
   );
 }
 
-function GoalsPreview({ goals }: { goals: Goal[] }) {
-  if (goals.length === 0) {
+function GoalsPanel(props: {
+  goals: Goal[];
+  selectedGoalId: string;
+  selectedGoal: Goal | null;
+  projection: GoalProjection | undefined;
+  isProjectionLoading: boolean;
+  projectionError: Error | null;
+  isCreatingGoal: boolean;
+  createGoalError: Error | null;
+  onOpenCreateGoal: () => void;
+  onSelectGoal: (goalId: string) => void;
+  onRetryProjection: () => void;
+  onUseGoalForRecommendation: (goalId: string) => void;
+}) {
+  if (props.goals.length === 0) {
     return (
-      <Section title="Goals" icon={<FlagIcon />}>
+      <Stack spacing={1.5}>
+        <Alert severity="info" variant="outlined">
+          Create a goal to unlock backend projection and recommendation handoff.
+        </Alert>
         <EmptyState
           title="No goals yet"
-          description="Create a goal to unlock projection and recommendation flows."
-          actionLabel="Create goal"
+          description="Create a first goal for education, home purchase, retirement, or wealth building."
         />
-      </Section>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={props.onOpenCreateGoal}
+          sx={{ alignSelf: 'flex-start' }}
+        >
+          Create goal
+        </Button>
+      </Stack>
     );
   }
 
   return (
-    <Section title="Goals" icon={<FlagIcon />}>
-      <Stack spacing={1.25}>
-        {goals.slice(0, 3).map((goal) => {
-          const progress =
-            goal.targetAmount > 0
-              ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
-              : 0;
-
-          return (
-            <Box
-              key={goal.id}
-              sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                p: 1.5,
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between" gap={1}>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={700}>{goal.name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {goal.type} · target {goal.targetDate}
-                  </Typography>
-                </Box>
-                <Typography fontWeight={700}>{formatCurrency(goal.targetAmount)}</Typography>
-              </Stack>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{ height: 7, borderRadius: 1, mt: 1 }}
-              />
-            </Box>
-          );
-        })}
+    <Stack spacing={2}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+      >
+        <Box>
+          <Typography variant="h3">Your goals</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Select a goal to review the deterministic projection and set up the next step.
+          </Typography>
+        </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={props.onOpenCreateGoal}>
+          Create goal
+        </Button>
       </Stack>
-    </Section>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { xs: '1fr', lg: '0.95fr 1.05fr' },
+          alignItems: 'start',
+        }}
+      >
+        <Stack spacing={1.25}>
+          {props.goals.map((goal) => {
+            const progress =
+              goal.targetAmount > 0
+                ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
+                : 0;
+            const isSelected = goal.id === props.selectedGoalId;
+
+            return (
+              <ButtonBase
+                key={goal.id}
+                onClick={() => props.onSelectGoal(goal.id)}
+                sx={{
+                  borderRadius: 1,
+                  textAlign: 'left',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    bgcolor: isSelected ? 'rgba(18, 76, 99, 0.04)' : 'background.paper',
+                    borderRadius: 1,
+                    p: 1.5,
+                    boxShadow: isSelected ? 1 : 0,
+                  }}
+                >
+                  <Stack direction="row" justifyContent="space-between" gap={1} alignItems="start">
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+                        <Typography fontWeight={800} noWrap>
+                          {goal.name}
+                        </Typography>
+                        {isSelected ? <Chip label="Selected" color="primary" size="small" /> : null}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatGoalTypeLabel(goal.type)} · target {formatCurrency(goal.targetAmount)} ·
+                        {` due ${formatGoalDate(goal.targetDate)}`}
+                      </Typography>
+                    </Box>
+                    <Typography fontWeight={700} sx={{ whiteSpace: 'nowrap' }}>
+                      {formatCurrency(goal.currentAmount)}
+                    </Typography>
+                  </Stack>
+
+                  <LinearProgress
+                    variant="determinate"
+                    value={progress}
+                    sx={{ height: 7, borderRadius: 1, mt: 1.25 }}
+                  />
+
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    flexWrap="wrap"
+                    useFlexGap
+                    sx={{ mt: 1 }}
+                  >
+                    <Chip
+                      label={goal.status.toUpperCase()}
+                      size="small"
+                      variant={isSelected ? 'filled' : 'outlined'}
+                    />
+                    <Chip
+                      label={`Priority: ${goal.priority}`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    {goal.plannedMonthlyContribution ? (
+                      <Chip
+                        label={`Planned ${formatCurrency(goal.plannedMonthlyContribution)}/mo`}
+                        size="small"
+                        variant="outlined"
+                      />
+                    ) : null}
+                  </Stack>
+                </Box>
+              </ButtonBase>
+            );
+          })}
+        </Stack>
+
+        <GoalProjectionPanel
+          goal={props.selectedGoal}
+          projection={props.projection}
+          isLoading={props.isProjectionLoading}
+          error={props.projectionError}
+          createGoalError={props.createGoalError}
+          isCreatingGoal={props.isCreatingGoal}
+          onRetry={props.onRetryProjection}
+          onUseGoalForRecommendation={props.onUseGoalForRecommendation}
+        />
+      </Box>
+    </Stack>
+  );
+}
+
+function GoalProjectionPanel(props: {
+  goal: Goal | null;
+  projection: GoalProjection | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  createGoalError: Error | null;
+  isCreatingGoal: boolean;
+  onRetry: () => void;
+  onUseGoalForRecommendation: (goalId: string) => void;
+}) {
+  if (!props.goal) {
+    return (
+      <Box
+        sx={{
+          border: '1px dashed',
+          borderColor: 'divider',
+          borderRadius: 1,
+          p: 2,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Typography fontWeight={800}>Select a goal</Typography>
+        <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+          Projection details appear here after you choose a goal from the list.
+        </Typography>
+      </Box>
+    );
+  }
+
+  const goal = props.goal;
+
+  if (props.isLoading) {
+    return (
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          p: 2,
+          bgcolor: 'background.paper',
+          minHeight: 240,
+        }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <CircularProgress size={20} />
+          <Typography color="text.secondary">Loading projection...</Typography>
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (props.error) {
+    return (
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          p: 2,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Stack spacing={1.25}>
+          <Typography fontWeight={800}>Could not load projection</Typography>
+          <Typography color="text.secondary">{props.error.message}</Typography>
+          <Button variant="outlined" onClick={props.onRetry} sx={{ alignSelf: 'flex-start' }}>
+            Retry projection
+          </Button>
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (!props.projection) {
+    return (
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          p: 2,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Typography color="text.secondary">Projection data is not available yet.</Typography>
+      </Box>
+    );
+  }
+
+  const statusColor =
+    props.projection.achievabilityStatus === 'ACHIEVABLE'
+      ? 'success'
+      : props.projection.achievabilityStatus === 'AT_RISK'
+        ? 'warning'
+        : 'error';
+  const shortfallIsPositive = props.projection.shortfallOrSurplus >= 0;
+  const shortfallLabel = shortfallIsPositive ? 'Surplus' : 'Shortfall';
+  const shortfallAmount = Math.abs(props.projection.shortfallOrSurplus);
+
+  return (
+    <Box
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        p: 2,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Stack spacing={1.5}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+          <Chip label={props.projection.achievabilityStatus} color={statusColor} size="small" />
+          <Chip label={formatGoalTypeLabel(goal.type)} variant="outlined" size="small" />
+          <Button
+            variant="outlined"
+            size="small"
+            endIcon={<OpenInNewIcon />}
+            onClick={() => props.onUseGoalForRecommendation(goal.id)}
+            disabled={props.isCreatingGoal}
+          >
+            Continue to recommendations
+          </Button>
+        </Stack>
+
+        <Box>
+          <Typography variant="h3">{goal.name}</Typography>
+          <Typography color="text.secondary">
+            Due {formatGoalDate(goal.targetDate)} · backend projection as of{' '}
+            {formatProjectionDate(props.projection.calculatedAt)}
+          </Typography>
+        </Box>
+
+        {props.createGoalError ? (
+          <Alert severity="error" variant="outlined">
+            {props.createGoalError.message}
+          </Alert>
+        ) : null}
+
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.25,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+          }}
+        >
+          <MetricCard
+            label="Projected amount"
+            value={formatCurrency(props.projection.projectedAmount)}
+          />
+          <MetricCard
+            label="Required monthly contribution"
+            value={formatCurrency(props.projection.requiredMonthlyContribution)}
+          />
+          <MetricCard
+            label="Planned monthly contribution"
+            value={formatCurrency(props.projection.plannedMonthlyContribution)}
+          />
+          <MetricCard
+            label="Months remaining"
+            value={`${props.projection.monthsRemaining.toLocaleString('en-IN')} months`}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: shortfallIsPositive ? 'success.light' : 'warning.light',
+            borderRadius: 1,
+            p: 1.5,
+            bgcolor: shortfallIsPositive ? 'rgba(36, 122, 77, 0.05)' : 'rgba(166, 106, 0, 0.05)',
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {shortfallLabel}
+          </Typography>
+          <Typography variant="h2" color={shortfallIsPositive ? 'success.main' : 'warning.main'}>
+            {formatCurrency(shortfallAmount)}
+          </Typography>
+          <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+            {shortfallIsPositive
+              ? 'Projected savings exceed the target amount at the current plan.'
+              : 'The current plan still falls short of the target and needs a higher contribution or longer horizon.'}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="h3" gutterBottom>
+            Suitability notes
+          </Typography>
+          <Stack spacing={1}>
+            {props.projection.explanations.map((explanation) => (
+              <Typography key={explanation} color="text.secondary" variant="body2">
+                {explanation}
+              </Typography>
+            ))}
+          </Stack>
+        </Box>
+
+        <Box>
+          <Typography variant="h3" gutterBottom>
+            Step-up suggestion
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            {props.projection.stepUpSuggestion.explanation}
+          </Typography>
+          {props.projection.stepUpSuggestion.isRequired ? (
+            <Stack spacing={0.75} sx={{ mt: 1 }}>
+              <Typography variant="body2" fontWeight={700}>
+                Suggested annual step-up: {props.projection.stepUpSuggestion.suggestedAnnualStepUpPercent}%
+              </Typography>
+              {props.projection.stepUpSuggestion.estimatedProjectedAmountWithStepUp !== null ? (
+                <Typography variant="body2" color="text.secondary">
+                  Estimated projected amount with step-up:{' '}
+                  {formatCurrency(props.projection.stepUpSuggestion.estimatedProjectedAmountWithStepUp)}
+                </Typography>
+              ) : null}
+            </Stack>
+          ) : null}
+        </Box>
+
+        <Box>
+          <Typography variant="h3" gutterBottom>
+            Projection assumptions
+          </Typography>
+          <Stack spacing={0.75}>
+            <Typography variant="body2" color="text.secondary">
+              Compounding frequency: {props.projection.assumptions.compoundingFrequency}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Inflation adjusted: {props.projection.assumptions.inflationAdjusted ? 'Yes' : 'No'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Returns are illustrative: {props.projection.assumptions.returnsAreIllustrative ? 'Yes' : 'No'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Projected returns are illustrative only and do not guarantee outcomes.
+            </Typography>
+          </Stack>
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
+function GoalCreateDialog(props: {
+  open: boolean;
+  form: GoalFormState;
+  errors: GoalFormErrors;
+  error: Error | null;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onFieldChange: <K extends keyof GoalFormState>(field: K, value: GoalFormState[K]) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Create goal</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2} sx={{ pt: 0.5 }}>
+          {props.error ? <Alert severity="error">{props.error.message}</Alert> : null}
+
+          <TextField
+            label="Goal name"
+            value={props.form.name}
+            onChange={(event) => props.onFieldChange('name', event.target.value)}
+            error={Boolean(props.errors.name)}
+            helperText={props.errors.name ?? 'Enter a clear goal title.'}
+            fullWidth
+            size="small"
+          />
+
+          <FormControl fullWidth size="small" error={Boolean(props.errors.goalType)}>
+            <Select
+              value={props.form.goalType}
+              onChange={(event) => props.onFieldChange('goalType', event.target.value as GoalType | '')}
+              displayEmpty
+            >
+              <MenuItem value="" disabled>
+                Select goal type
+              </MenuItem>
+              {goalTypeOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>{props.errors.goalType ?? 'Choose the closest supported goal type.'}</FormHelperText>
+          </FormControl>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            }}
+          >
+            <TextField
+              label="Target amount"
+              value={props.form.targetAmount}
+              onChange={(event) => props.onFieldChange('targetAmount', event.target.value)}
+              error={Boolean(props.errors.targetAmount)}
+              helperText={props.errors.targetAmount ?? 'Total amount needed for the goal.'}
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ min: 0, step: '1' }}
+              InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+            />
+            <TextField
+              label="Current savings"
+              value={props.form.currentSavings}
+              onChange={(event) => props.onFieldChange('currentSavings', event.target.value)}
+              error={Boolean(props.errors.currentSavings)}
+              helperText={props.errors.currentSavings ?? 'Amount already saved for this goal.'}
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ min: 0, step: '1' }}
+              InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            }}
+          >
+            <TextField
+              label="Target date"
+              value={props.form.targetDate}
+              onChange={(event) => props.onFieldChange('targetDate', event.target.value)}
+              error={Boolean(props.errors.targetDate)}
+              helperText={props.errors.targetDate ?? 'Select a future date.'}
+              fullWidth
+              size="small"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ min: getTomorrowDateInputValue() }}
+            />
+            <FormControl fullWidth size="small" error={Boolean(props.errors.priority)}>
+              <Select
+                value={props.form.priority}
+                onChange={(event) => props.onFieldChange('priority', event.target.value as CreateGoalPriority | '')}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  Select priority
+                </MenuItem>
+                {goalPriorityOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>{props.errors.priority ?? 'Choose how urgently the goal should be funded.'}</FormHelperText>
+            </FormControl>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            }}
+          >
+            <TextField
+              label="Planned monthly contribution"
+              value={props.form.plannedMonthlyContribution}
+              onChange={(event) =>
+                props.onFieldChange('plannedMonthlyContribution', event.target.value)
+              }
+              error={Boolean(props.errors.plannedMonthlyContribution)}
+              helperText={props.errors.plannedMonthlyContribution ?? 'Optional. Leave blank to use backend fallback.'}
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ min: 0, step: '1' }}
+              InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+            />
+            <TextField
+              label="Expected annual return %"
+              value={props.form.expectedAnnualReturnPercent}
+              onChange={(event) =>
+                props.onFieldChange('expectedAnnualReturnPercent', event.target.value)
+              }
+              error={Boolean(props.errors.expectedAnnualReturnPercent)}
+              helperText={props.errors.expectedAnnualReturnPercent ?? 'Optional. Range 0 to 15.'}
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ min: 0, max: 15, step: '0.1' }}
+            />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={props.onClose} disabled={props.isSubmitting}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          onClick={props.onSubmit}
+          disabled={props.isSubmitting}
+          startIcon={props.isSubmitting ? <CircularProgress size={16} /> : <AddIcon />}
+        >
+          Create goal
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -1149,32 +1794,46 @@ function RiskProfileStatus({ riskProfile }: { riskProfile: RiskProfileResult | n
 function RecommendationPreview(props: {
   recommendations: DashboardRecommendation[];
   hasGoals: boolean;
+  selectedGoal: Goal | null;
 }) {
   const latest = props.recommendations.at(-1);
 
   if (!latest) {
     return (
       <Section title="Recommendations" icon={<TrendingUpIcon />}>
-        <EmptyState
-          title="No recommendation yet"
-          description={
-            props.hasGoals
-              ? 'Generate a recommendation after confirming risk profile and capacity.'
-              : 'Create a goal first so the engine can recommend against a clear target.'
-          }
-          actionLabel={props.hasGoals ? 'View recommendations' : 'Create goal'}
-        />
+        <Stack spacing={1.25}>
+          {props.selectedGoal ? (
+            <Alert severity="info" variant="outlined">
+              Selected goal for the next recommendation: <strong>{props.selectedGoal.name}</strong>
+            </Alert>
+          ) : null}
+          <EmptyState
+            title="No recommendation yet"
+            description={
+              props.hasGoals
+                ? 'Generate a recommendation after confirming risk profile and capacity.'
+                : 'Create a goal first so the engine can recommend against a clear target.'
+            }
+          />
+        </Stack>
       </Section>
     );
   }
 
   return (
     <Section title="Recommendations" icon={<TrendingUpIcon />}>
-      {'recommendationId' in latest ? (
-        <GeneratedRecommendationSummary recommendation={latest} />
-      ) : (
-        <SeededRecommendationSummary recommendation={latest} />
-      )}
+      <Stack spacing={1.25}>
+        {props.selectedGoal ? (
+          <Alert severity="info" variant="outlined">
+            Selected goal for the next recommendation: <strong>{props.selectedGoal.name}</strong>
+          </Alert>
+        ) : null}
+        {'recommendationId' in latest ? (
+          <GeneratedRecommendationSummary recommendation={latest} />
+        ) : (
+          <SeededRecommendationSummary recommendation={latest} />
+        )}
+      </Stack>
     </Section>
   );
 }
@@ -1347,6 +2006,189 @@ function Section(props: { title: string; icon: ReactNode; children: ReactNode })
       {props.children}
     </Box>
   );
+}
+
+const goalTypeOptions: Array<{ value: GoalType; label: string }> = [
+  { value: 'emergency-fund', label: 'Emergency fund' },
+  { value: 'home', label: 'Home purchase' },
+  { value: 'education', label: 'Education' },
+  { value: 'retirement', label: 'Retirement' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'wealth-building', label: 'Wealth building' },
+];
+
+const goalPriorityOptions: Array<{ value: CreateGoalPriority; label: string }> = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+];
+
+interface GoalFormState {
+  goalType: GoalType | '';
+  name: string;
+  targetAmount: string;
+  currentSavings: string;
+  targetDate: string;
+  priority: CreateGoalPriority | '';
+  plannedMonthlyContribution: string;
+  expectedAnnualReturnPercent: string;
+}
+
+type GoalFormErrors = Partial<Record<keyof GoalFormState, string>>;
+
+function createBlankGoalForm(): GoalFormState {
+  return {
+    goalType: '',
+    name: '',
+    targetAmount: '',
+    currentSavings: '',
+    targetDate: getDateInputValueFromOffset(12),
+    priority: 'MEDIUM',
+    plannedMonthlyContribution: '',
+    expectedAnnualReturnPercent: '',
+  };
+}
+
+function buildGoalRequest(form: GoalFormState): CreateGoalRequest {
+  return {
+    goalType: form.goalType as GoalType,
+    name: form.name.trim(),
+    targetAmount: Number(form.targetAmount),
+    currentSavings: Number(form.currentSavings),
+    targetDate: form.targetDate,
+    priority: form.priority as CreateGoalPriority,
+    plannedMonthlyContribution: parseOptionalNumber(form.plannedMonthlyContribution),
+    expectedAnnualReturnPercent: parseOptionalNumber(form.expectedAnnualReturnPercent),
+  };
+}
+
+function validateGoalForm(form: GoalFormState): GoalFormErrors {
+  const errors: GoalFormErrors = {};
+  const today = getTodayDateInputValue();
+
+  if (!goalTypeOptions.some((option) => option.value === form.goalType)) {
+    errors.goalType = 'Select a supported goal type.';
+  }
+
+  if (!form.name.trim()) {
+    errors.name = 'Goal name is required.';
+  }
+
+  if (!isPositiveNumber(form.targetAmount)) {
+    errors.targetAmount = 'Target amount must be greater than 0.';
+  }
+
+  if (!isNonNegativeNumber(form.currentSavings)) {
+    errors.currentSavings = 'Current savings must be greater than or equal to 0.';
+  }
+
+  if (!form.targetDate || form.targetDate <= today) {
+    errors.targetDate = 'Target date must be in the future.';
+  }
+
+  if (!goalPriorityOptions.some((option) => option.value === form.priority)) {
+    errors.priority = 'Select a supported priority.';
+  }
+
+  if (form.plannedMonthlyContribution.trim()) {
+    const plannedMonthlyContribution = Number(form.plannedMonthlyContribution);
+
+    if (!Number.isFinite(plannedMonthlyContribution) || plannedMonthlyContribution < 0) {
+      errors.plannedMonthlyContribution =
+        'Planned monthly contribution must be greater than or equal to 0.';
+    }
+  }
+
+  if (form.expectedAnnualReturnPercent.trim()) {
+    const expectedAnnualReturnPercent = Number(form.expectedAnnualReturnPercent);
+
+    if (
+      !Number.isFinite(expectedAnnualReturnPercent) ||
+      expectedAnnualReturnPercent < 0 ||
+      expectedAnnualReturnPercent > 15
+    ) {
+      errors.expectedAnnualReturnPercent = 'Expected annual return must be between 0 and 15.';
+    }
+  }
+
+  return errors;
+}
+
+function formatGoalTypeLabel(goalType: GoalType): string {
+  return goalTypeOptions.find((option) => option.value === goalType)?.label ?? goalType;
+}
+
+function formatGoalDate(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatProjectionDate(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+function getTodayDateInputValue(): string {
+  return toDateInputValue(new Date());
+}
+
+function getDateInputValueFromOffset(monthsAhead: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() + monthsAhead);
+  return toDateInputValue(date);
+}
+
+function getTomorrowDateInputValue(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return toDateInputValue(date);
+}
+
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function isPositiveNumber(value: string): boolean {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0;
+}
+
+function isNonNegativeNumber(value: string): boolean {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0;
+}
+
+function parseOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function SectionStatus(props: {
