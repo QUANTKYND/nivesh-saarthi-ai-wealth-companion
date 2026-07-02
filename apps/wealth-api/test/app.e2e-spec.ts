@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import type {
   RiskProfileQuestionnaire,
   RiskProfileResult,
+  RecommendationResult,
 } from '@wealth/shared-types';
 import { AppModule } from './../src/app.module';
 
@@ -88,6 +89,45 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .post('/api/customers/missing-customer/risk-profile')
       .send({ answers: [] })
+      .expect(404);
+  });
+
+  it('/api/customers/:customerId/recommendations (POST then GET)', async () => {
+    await request(app.getHttpServer())
+      .post('/api/customers/cust-family-001/recommendations')
+      .send({ goalId: 'goal-f-001', monthlyInvestmentCapacity: 10000 })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as RecommendationResult;
+
+        expect(body.customerId).toBe('cust-family-001');
+        expect(body.goalId).toBe('goal-f-001');
+        expect(body.recommendedPlan?.allocation.length).toBeGreaterThan(0);
+        expect(body.disclaimer).toEqual(expect.any(String));
+      });
+
+    return request(app.getHttpServer())
+      .get('/api/customers/cust-family-001/recommendations')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as Array<Record<string, unknown>>;
+
+        expect(body.some((item) => item.customerId === 'cust-family-001')).toBe(
+          true,
+        );
+        expect(body.some((item) => 'recommendationId' in item)).toBe(true);
+      });
+  });
+
+  it('/api/customers/:customerId/recommendations returns validation and not found errors', async () => {
+    await request(app.getHttpServer())
+      .post('/api/customers/cust-family-001/recommendations')
+      .send({ goalId: 'goal-f-001', monthlyInvestmentCapacity: -1 })
+      .expect(400);
+
+    return request(app.getHttpServer())
+      .post('/api/customers/cust-family-001/recommendations')
+      .send({ goalId: 'missing-goal' })
       .expect(404);
   });
 

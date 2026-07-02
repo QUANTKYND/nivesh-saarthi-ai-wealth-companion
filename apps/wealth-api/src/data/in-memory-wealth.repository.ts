@@ -8,6 +8,7 @@ import type {
   Goal,
   ProductCatalogItem,
   Recommendation,
+  RecommendationResult,
   RiskProfile,
   RiskProfileResult,
   SpendingCategory,
@@ -918,6 +919,7 @@ const productCatalog: ProductCatalogItem[] = [
     id: 'prod-fd-001',
     name: 'IDBI Senior Citizen Fixed Deposit',
     category: 'fixed-deposit',
+    productType: 'FIXED_DEPOSIT',
     riskLevel: 'low',
     minimumInvestment: 10000,
     currency,
@@ -931,6 +933,7 @@ const productCatalog: ProductCatalogItem[] = [
     id: 'prod-rd-001',
     name: 'IDBI Goal Builder Recurring Deposit',
     category: 'recurring-deposit',
+    productType: 'RECURRING_DEPOSIT',
     riskLevel: 'low',
     minimumInvestment: 1000,
     currency,
@@ -941,20 +944,36 @@ const productCatalog: ProductCatalogItem[] = [
   },
   {
     id: 'prod-mf-001',
-    name: 'IDBI Balanced Advantage Fund',
+    name: 'IDBI Conservative Mutual Fund Basket',
     category: 'mutual-fund',
+    productType: 'CONSERVATIVE_MF_BASKET',
     riskLevel: 'medium',
     minimumInvestment: 5000,
     currency,
     suitableFor: ['moderate', 'growth'],
-    description: 'Market-linked fund option for medium-term wealth building.',
+    description:
+      'Bank-approved conservative market-linked basket for measured growth.',
+    disclaimer: 'Mutual fund investments are subject to market risks.',
+    isActive: true,
+  },
+  {
+    id: 'prod-mf-balanced-001',
+    name: 'IDBI Balanced Mutual Fund Basket',
+    category: 'mutual-fund',
+    productType: 'BALANCED_MF_BASKET',
+    riskLevel: 'medium',
+    minimumInvestment: 5000,
+    currency,
+    suitableFor: ['moderate', 'growth'],
+    description: 'Bank-approved balanced basket for medium-to-long-term goals.',
     disclaimer: 'Mutual fund investments are subject to market risks.',
     isActive: true,
   },
   {
     id: 'prod-mf-002',
-    name: 'IDBI Equity Growth Fund',
+    name: 'IDBI Equity SIP Basket',
     category: 'mutual-fund',
+    productType: 'EQUITY_SIP_BASKET',
     riskLevel: 'high',
     minimumInvestment: 5000,
     currency,
@@ -964,9 +983,25 @@ const productCatalog: ProductCatalogItem[] = [
     isActive: true,
   },
   {
+    id: 'prod-tax-001',
+    name: 'IDBI Tax Saving Basket',
+    category: 'mutual-fund',
+    productType: 'TAX_SAVING',
+    riskLevel: 'medium',
+    minimumInvestment: 5000,
+    currency,
+    suitableFor: ['moderate', 'growth'],
+    description:
+      'Bank-approved tax saving basket subject to lock-in and suitability.',
+    disclaimer:
+      'Tax treatment depends on prevailing law. This is not tax advice.',
+    isActive: true,
+  },
+  {
     id: 'prod-ins-001',
     name: 'IDBI Family Protection Plan',
     category: 'insurance',
+    productType: 'INSURANCE_PROTECTION',
     riskLevel: 'low',
     minimumInvestment: 12000,
     currency,
@@ -1005,6 +1040,8 @@ const recommendations: Recommendation[] = [
     createdAt: '2026-06-24T10:15:00.000Z',
   },
 ];
+
+const generatedRecommendations: RecommendationResult[] = [];
 
 const advisorChatMessages: AdvisorChatMessage[] = [
   {
@@ -1180,9 +1217,24 @@ export class InMemoryWealthRepository {
     return productCatalog.filter((item) => item.isActive);
   }
 
-  findRecommendationsByCustomerId(customerId: string): Recommendation[] {
+  findRecommendationsByCustomerId(
+    customerId: string,
+  ): Array<Recommendation | RecommendationResult> {
     this.findCustomerById(customerId);
-    return recommendations.filter((item) => item.customerId === customerId);
+    return [
+      ...recommendations.filter((item) => item.customerId === customerId),
+      ...generatedRecommendations.filter(
+        (item) => item.customerId === customerId,
+      ),
+    ];
+  }
+
+  createRecommendationResult(
+    result: RecommendationResult,
+  ): RecommendationResult {
+    this.findCustomerById(result.customerId);
+    generatedRecommendations.push(result);
+    return result;
   }
 
   findAdvisorChatMessagesByCustomerId(

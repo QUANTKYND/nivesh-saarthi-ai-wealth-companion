@@ -113,11 +113,20 @@ export interface RiskProfile {
 export type ProductRiskLevel = 'low' | 'medium' | 'high';
 export type ProductCategory =
   'savings' | 'fixed-deposit' | 'recurring-deposit' | 'mutual-fund' | 'insurance' | 'pension';
+export type BankApprovedProductType =
+  | 'FIXED_DEPOSIT'
+  | 'RECURRING_DEPOSIT'
+  | 'CONSERVATIVE_MF_BASKET'
+  | 'BALANCED_MF_BASKET'
+  | 'EQUITY_SIP_BASKET'
+  | 'TAX_SAVING'
+  | 'INSURANCE_PROTECTION';
 
 export interface ProductCatalogItem {
   id: string;
   name: string;
   category: ProductCategory;
+  productType: BankApprovedProductType;
   riskLevel: ProductRiskLevel;
   minimumInvestment: number;
   currency: CurrencyCode;
@@ -229,3 +238,13 @@ export type {
   SubmitRiskProfileAnswer,
   SubmitRiskProfileRequest,
 } from './risk-profile.js';
+
+export type {
+  GenerateRecommendationRequest,
+  RecommendationNextBestAction,
+  RecommendationNextBestActionType,
+  RecommendationResult,
+  RecommendationSuitability,
+  RecommendedAllocationItem,
+  RecommendedPlan,
+} from './recommendation-engine.js';
