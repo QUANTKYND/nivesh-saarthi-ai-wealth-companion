@@ -16,6 +16,13 @@ pnpm install
 pnpm dev
 ```
 
+The wealth web dashboard calls the API at `http://localhost:3000/api` by default.
+Override this for another backend host with:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000/api pnpm dev:web
+```
+
 ## Scripts
 
 - `pnpm dev` - Run web and API development servers.

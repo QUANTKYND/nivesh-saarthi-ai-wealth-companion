@@ -5,6 +5,13 @@ import { fileURLToPath, URL } from 'node:url';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 500,
+      ignored: ['**/node_modules/**', '**/dist/**', '**/coverage/**'],
+    },
+  },
   resolve: {
     alias: {
       '@wealth/web': fileURLToPath(new URL('./src', import.meta.url)),

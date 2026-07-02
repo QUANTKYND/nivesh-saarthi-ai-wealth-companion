@@ -24,9 +24,13 @@
 - [x] Controlled advisor chat backend API.
 - [x] Deterministic advisor chat intent handling and fallback responses.
 - [x] Advisor chat guardrails and audit logging.
+- [x] Frontend wealth dashboard shell.
+- [x] Dashboard API client and TanStack Query hooks.
+- [x] Customer switcher and dashboard loading/error/empty states.
 
 ## Deferred Milestones
 
+- [ ] Goal planner frontend.
 - [ ] Risk profile wizard frontend.
 - [ ] Recommendation review frontend.
 - [ ] Avatar advisor chat UI.
