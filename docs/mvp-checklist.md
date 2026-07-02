@@ -9,6 +9,8 @@
 - [x] Categorized transaction data.
 - [x] Product catalog data.
 - [x] Basic read APIs for customer wealth data.
+- [x] Calculated wealth dashboard backend API.
+- [x] Deterministic wealth readiness score.
 
 ## Deferred Milestones
 

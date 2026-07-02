@@ -11,6 +11,7 @@ import { ProductCatalogModule } from './product-catalog/product-catalog.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { RiskProfilesModule } from './risk-profiles/risk-profiles.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { WealthDashboardModule } from './wealth-dashboard/wealth-dashboard.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     RecommendationsModule,
     RiskProfilesModule,
     TransactionsModule,
+    WealthDashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

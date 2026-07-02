@@ -36,6 +36,10 @@ export interface AccountSummary {
   savingsBalance: number;
   investmentBalance: number;
   fixedDepositBalance: number;
+  recurringDepositBalance: number;
+  mutualFundBalance: number;
+  loanOutstanding: number;
+  creditCardOutstanding: number;
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlySurplus: number;
@@ -171,3 +175,11 @@ export interface AdvisorCallbackRequest {
   status: AdvisorCallbackStatus;
   createdAt: string;
 }
+
+export type {
+  CustomerSegment,
+  DashboardRiskProfile,
+  InvestmentAllocationItem,
+  WealthProfile,
+  WealthReadinessBand,
+} from './wealth-profile.js';
