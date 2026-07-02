@@ -11,10 +11,11 @@
 - [x] Basic read APIs for customer wealth data.
 - [x] Calculated wealth dashboard backend API.
 - [x] Deterministic wealth readiness score.
+- [x] Spending insights backend API.
+- [x] Deterministic transaction insight engine.
 
 ## Deferred Milestones
 
-- [ ] Spending calculations and insights.
 - [ ] Goal planning workflow.
 - [ ] Risk profile wizard.
 - [ ] Rule-based recommendations.
