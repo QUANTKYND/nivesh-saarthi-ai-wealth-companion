@@ -1,0 +1,21 @@
+# MVP Checklist
+
+## Foundation
+
+- [x] Monorepo scaffold with frontend, backend, shared types, and docs.
+- [x] Shared domain models and DTOs.
+- [x] In-memory seed data repositories.
+- [x] Three customer personas.
+- [x] Categorized transaction data.
+- [x] Product catalog data.
+- [x] Basic read APIs for customer wealth data.
+
+## Deferred Milestones
+
+- [ ] Spending calculations and insights.
+- [ ] Goal planning workflow.
+- [ ] Risk profile wizard.
+- [ ] Rule-based recommendations.
+- [ ] Avatar advisor chat.
+- [ ] Human advisor callback flow.
+- [ ] Audit and compliance review UI.

@@ -26,6 +26,20 @@ pnpm dev
 - `pnpm typecheck` - Type-check all workspaces.
 - `pnpm format` - Format the repository with Prettier.
 
+## API Testing
+
+When the API is running, open Swagger UI at:
+
+```txt
+http://localhost:3000/api/docs
+```
+
+The OpenAPI JSON document is available at:
+
+```txt
+http://localhost:3000/api/docs-json
+```
+
 ## Environment
 
 Copy each `.env.example` file to `.env` in the same directory when local values are needed.
