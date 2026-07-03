@@ -5,6 +5,7 @@ import type {
   SubmitRiskProfileRequest,
 } from '@wealth/shared-types';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { riskProfileQuestionnaire } from './risk-questionnaire';
 import { RiskProfileScoringService } from './risk-profile-scoring.service';
 
@@ -13,6 +14,7 @@ export class RiskProfilesService {
   constructor(
     private readonly repository: InMemoryWealthRepository,
     private readonly scoringService: RiskProfileScoringService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   getQuestionnaire() {
@@ -38,6 +40,16 @@ export class RiskProfilesService {
   ): RiskProfileResult {
     const customer = this.repository.findCustomerById(customerId);
     const result = this.scoringService.score(customer, request);
+    const createdAt = new Date().toISOString();
+    this.auditLogsService.create({
+      id: `audit-${customerId}-${Date.now()}-risk-profile`,
+      customerId,
+      action: 'risk_profile_submitted',
+      actor: 'customer',
+      description: 'Risk profile questionnaire was submitted.',
+      createdAt,
+      metadata: { category: result.category, scorePercent: result.scorePercent },
+    });
 
     return this.repository.upsertRiskProfileResult(result);
   }

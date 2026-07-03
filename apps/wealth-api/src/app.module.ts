@@ -5,6 +5,7 @@ import { AdvisorChatModule } from './advisor-chat/advisor-chat.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { ComplianceModule } from './compliance/compliance.module';
 import { CustomersModule } from './customers/customers.module';
 import { GoalsModule } from './goals/goals.module';
 import { ProductCatalogModule } from './product-catalog/product-catalog.module';
@@ -20,6 +21,7 @@ import { WealthDashboardModule } from './wealth-dashboard/wealth-dashboard.modul
     AdvisorCallbacksModule,
     AdvisorChatModule,
     AuditLogsModule,
+    ComplianceModule,
     CustomersModule,
     GoalsModule,
     ProductCatalogModule,
