@@ -29,11 +29,11 @@
 - [x] Customer switcher and dashboard loading/error/empty states.
 - [x] Avatar advisor chat UI.
 - [x] Suggested prompts, response action cards, and disclaimer rendering.
+- [x] Risk profile wizard frontend.
 
 ## Deferred Milestones
 
 - [x] Goal planner frontend.
-- [ ] Risk profile wizard frontend.
 - [ ] Recommendation review frontend.
 - [ ] Human advisor callback flow.
 - [ ] Audit and compliance review UI.

@@ -7,9 +7,11 @@ import type {
   Goal,
   GoalProjection,
   GoalResponse,
+  RiskProfileQuestionnaire,
   Recommendation,
   RecommendationResult,
   RiskProfileResult,
+  SubmitRiskProfileRequest,
   SpendingInsights,
   WealthProfile,
 } from '@wealth/shared-types';
@@ -80,6 +82,8 @@ async function extractErrorMessage(response: Response): Promise<string> {
 export type DashboardRecommendation = Recommendation | RecommendationResult;
 
 export const wealthApi = {
+  getRiskProfileQuestionnaire: () =>
+    getJson<RiskProfileQuestionnaire>('/risk-profile/questions'),
   getCustomers: () => getJson<Customer[]>('/customers'),
   getWealthProfile: (customerId: string) =>
     getJson<WealthProfile>(`/customers/${customerId}/wealth-profile`),
@@ -101,6 +105,11 @@ export const wealthApi = {
       throw error;
     }
   },
+  submitRiskProfile: (customerId: string, request: SubmitRiskProfileRequest) =>
+    postJson<SubmitRiskProfileRequest, RiskProfileResult>(
+      `/customers/${customerId}/risk-profile`,
+      request,
+    ),
   getRecommendations: (customerId: string) =>
     getJson<DashboardRecommendation[]>(`/customers/${customerId}/recommendations`),
   getAdvisorChatMessages: (customerId: string) =>
