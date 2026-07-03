@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
   AccountSummary,
+  AdvisorCallbackAdvisorSummary,
+  AdvisorCallbackResponse,
+  AdvisorCallbackSource,
   AdvisorCallbackRequest,
   AdvisorChatMessage,
   AuditLog,
@@ -1268,6 +1271,72 @@ export class InMemoryWealthRepository {
     return advisorCallbackRequests.filter(
       (item) => item.customerId === customerId,
     );
+  }
+
+  findAllAdvisorCallbackRequests(): AdvisorCallbackRequest[] {
+    return [...advisorCallbackRequests];
+  }
+
+  createAdvisorCallbackRequest(
+    request: Omit<AdvisorCallbackResponse, 'createdAt'> & { createdAt: string },
+  ): AdvisorCallbackResponse {
+    this.findCustomerById(request.customerId);
+    advisorCallbackRequests.push(request);
+    return request;
+  }
+
+  findLatestRecommendationForCustomer(
+    customerId: string,
+  ): RecommendationResult | undefined {
+    this.findCustomerById(customerId);
+    const generated = generatedRecommendations.filter(
+      (item) => item.customerId === customerId,
+    );
+    return generated.at(-1);
+  }
+
+  buildAdvisorCallbackSummary(input: {
+    customerId: string;
+    source?: AdvisorCallbackSource;
+  }): AdvisorCallbackAdvisorSummary {
+    const customer = this.findCustomerById(input.customerId);
+    const riskProfile = this.findSubmittedRiskProfileResultByCustomerId(input.customerId);
+    const goal = goals.find((item) => item.customerId === input.customerId) ?? null;
+    const latestRecommendation = this.findLatestRecommendationForCustomer(
+      input.customerId,
+    );
+
+    const summary = [
+      `${customer.fullName} requested an advisor callback${
+        input.source ? ` from ${input.source.toLowerCase()}` : ''
+      }.`,
+      riskProfile
+        ? `Risk profile is ${riskProfile.category}.`
+        : 'Risk profile is not completed yet.',
+      goal ? `Primary goal: ${goal.name}.` : 'No goal selected yet.',
+      latestRecommendation
+        ? `Latest recommendation suitability is ${latestRecommendation.suitability}.`
+        : 'No recommendation has been generated yet.',
+    ].join(' ');
+
+    const keyDiscussionPoints = [
+      goal ? 'Confirm goal amount and target date.' : 'Confirm the customer goal and target timeline.',
+      latestRecommendation
+        ? 'Review recommendation suitability, warnings, and next best action.'
+        : 'Review savings capacity, goals, and suitability first.',
+      riskProfile
+        ? 'Confirm the customer understands the current risk profile.'
+        : 'Complete suitability profiling before final product guidance.',
+    ];
+
+    return {
+      customerName: customer.fullName,
+      riskProfile: riskProfile?.category ?? null,
+      primaryGoal: goal?.name ?? null,
+      latestRecommendationSuitability: latestRecommendation?.suitability ?? null,
+      summary,
+      keyDiscussionPoints,
+    };
   }
 
   private toLegacyRiskProfile(result: RiskProfileResult): RiskProfile {

@@ -2,7 +2,10 @@ import type {
   AdvisorChatMessage,
   AdvisorChatRequest,
   AdvisorChatResponse,
+  AdminAdvisorCallbackListItem,
   Customer,
+  AdvisorCallbackResponse,
+  CreateAdvisorCallbackRequest,
   CreateGoalRequest,
   Goal,
   GoalProjection,
@@ -122,4 +125,13 @@ export const wealthApi = {
     getJson<AdvisorChatMessage[]>(`/customers/${customerId}/advisor-chat/messages`),
   sendAdvisorChatMessage: (request: AdvisorChatRequest) =>
     postJson<AdvisorChatRequest, AdvisorChatResponse>('/advisor-chat/message', request),
+  getAdvisorCallbacks: (customerId: string) =>
+    getJson<AdvisorCallbackResponse[]>(`/customers/${customerId}/advisor-callbacks`),
+  createAdvisorCallback: (customerId: string, request: CreateAdvisorCallbackRequest) =>
+    postJson<CreateAdvisorCallbackRequest, AdvisorCallbackResponse>(
+      `/customers/${customerId}/advisor-callbacks`,
+      request,
+    ),
+  getAdminAdvisorCallbacks: () =>
+    getJson<AdminAdvisorCallbackListItem[]>('/admin/advisor-callbacks'),
 };

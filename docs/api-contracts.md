@@ -240,6 +240,31 @@ Response body:
 ]
 ```
 
+## Advisor Handoff
+
+### `GET /api/customers/:customerId/advisor-callbacks`
+
+Lists callback requests for a customer.
+
+### `POST /api/customers/:customerId/advisor-callbacks`
+
+Creates an advisor callback request and returns the stored callback with a deterministic advisor summary.
+
+Request body:
+
+```json
+{
+  "preferredDate": "2026-07-05",
+  "preferredTimeWindow": "16:00-18:00",
+  "topic": "Education goal and recommendation review",
+  "source": "RECOMMENDATION"
+}
+```
+
+### `GET /api/admin/advisor-callbacks`
+
+Lists all advisor callback requests across customers for the admin/advisor view.
+
 Generated recommendations use the `RecommendationResult` shape returned by the POST endpoint and are appended to the same list.
 
 ### `POST /api/customers/:customerId/recommendations`
