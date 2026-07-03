@@ -7,6 +7,7 @@ import type {
   Goal,
   GoalProjection,
   GoalResponse,
+  GenerateRecommendationRequest,
   RiskProfileQuestionnaire,
   Recommendation,
   RecommendationResult,
@@ -112,6 +113,11 @@ export const wealthApi = {
     ),
   getRecommendations: (customerId: string) =>
     getJson<DashboardRecommendation[]>(`/customers/${customerId}/recommendations`),
+  generateRecommendation: (customerId: string, request: GenerateRecommendationRequest) =>
+    postJson<GenerateRecommendationRequest, RecommendationResult>(
+      `/customers/${customerId}/recommendations`,
+      request,
+    ),
   getAdvisorChatMessages: (customerId: string) =>
     getJson<AdvisorChatMessage[]>(`/customers/${customerId}/advisor-chat/messages`),
   sendAdvisorChatMessage: (request: AdvisorChatRequest) =>

@@ -113,25 +113,25 @@ export function GoalProjectionPanel(props: {
         ) : null}
 
         <Grid container spacing={1.25}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }} >
             <MetricCard
               label="Projected amount"
               value={formatCurrency(props.projection.projectedAmount)}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }} >
             <MetricCard
               label="Required monthly contribution"
               value={formatCurrency(props.projection.requiredMonthlyContribution)}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }} >
             <MetricCard
               label="Planned monthly contribution"
               value={formatCurrency(props.projection.plannedMonthlyContribution)}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }} >
             <MetricCard
               label="Months remaining"
               value={`${props.projection.monthsRemaining.toLocaleString('en-IN')} months`}

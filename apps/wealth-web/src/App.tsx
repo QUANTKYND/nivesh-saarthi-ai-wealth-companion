@@ -375,13 +375,22 @@ function App() {
                   label="recommendations"
                 >
                   <Box ref={recommendationsSectionRef}>
-                    <RecommendationPreview
-                      recommendations={recommendationsQuery.data ?? []}
-                      hasGoals={(goalsQuery.data?.length ?? 0) > 0}
-                      selectedGoal={selectedGoal}
-                    />
-                  </Box>
-                </SectionStatus>
+                <RecommendationPreview
+                  customerId={activeCustomerId}
+                  goals={goalsQuery.data ?? []}
+                  riskProfile={riskProfileQuery.data}
+                  recommendations={recommendationsQuery.data ?? []}
+                  selectedGoal={selectedGoal}
+                  onSelectGoal={setSelectedGoalId}
+                  onCreateGoal={openGoalDialog}
+                  onTakeRiskProfile={openRiskWizard}
+                  onOpenAdvisorCallback={() => {
+                    setChatDraft('Request advisor callback');
+                    setIsChatOpen(true);
+                  }}
+                />
+              </Box>
+            </SectionStatus>
               </Stack>
             </Grid>
           </Grid>
