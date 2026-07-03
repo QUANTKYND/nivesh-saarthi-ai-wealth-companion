@@ -1,4 +1,5 @@
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   Alert,
   Button,
@@ -10,6 +11,7 @@ import {
   FormControl,
   FormHelperText,
   Grid,
+  IconButton,
   InputAdornment,
   MenuItem,
   Select,
@@ -33,7 +35,17 @@ export function GoalCreateDialog(props: {
 }) {
   return (
     <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Create goal</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        Create goal
+        <IconButton
+          aria-label="Close goal dialog"
+          onClick={props.onClose}
+          disabled={props.isSubmitting}
+          size="small"
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2} sx={{ pt: 0.5 }}>
           {props.error ? <Alert severity="error">{props.error.message}</Alert> : null}
@@ -51,7 +63,9 @@ export function GoalCreateDialog(props: {
           <FormControl fullWidth size="small" error={Boolean(props.errors.goalType)}>
             <Select
               value={props.form.goalType}
-              onChange={(event) => props.onFieldChange('goalType', event.target.value as GoalType | '')}
+              onChange={(event) =>
+                props.onFieldChange('goalType', event.target.value as GoalType | '')
+              }
               displayEmpty
             >
               <MenuItem value="" disabled>
@@ -63,11 +77,13 @@ export function GoalCreateDialog(props: {
                 </MenuItem>
               ))}
             </Select>
-            <FormHelperText>{props.errors.goalType ?? 'Choose the closest supported goal type.'}</FormHelperText>
+            <FormHelperText>
+              {props.errors.goalType ?? 'Choose the closest supported goal type.'}
+            </FormHelperText>
           </FormControl>
 
           <Grid container spacing={1.5}>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Target amount"
                 value={props.form.targetAmount}
@@ -78,10 +94,12 @@ export function GoalCreateDialog(props: {
                 size="small"
                 type="number"
                 inputProps={{ min: 0, step: '1' }}
-                InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">INR</InputAdornment>,
+                }}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Current savings"
                 value={props.form.currentSavings}
@@ -92,13 +110,15 @@ export function GoalCreateDialog(props: {
                 size="small"
                 type="number"
                 inputProps={{ min: 0, step: '1' }}
-                InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">INR</InputAdornment>,
+                }}
               />
             </Grid>
           </Grid>
 
           <Grid container spacing={1.5}>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Target date"
                 value={props.form.targetDate}
@@ -112,11 +132,13 @@ export function GoalCreateDialog(props: {
                 inputProps={{ min: getTomorrowDateInputValue() }}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small" error={Boolean(props.errors.priority)}>
                 <Select
                   value={props.form.priority}
-                  onChange={(event) => props.onFieldChange('priority', event.target.value as CreateGoalPriority | '')}
+                  onChange={(event) =>
+                    props.onFieldChange('priority', event.target.value as CreateGoalPriority | '')
+                  }
                   displayEmpty
                 >
                   <MenuItem value="" disabled>
@@ -128,13 +150,15 @@ export function GoalCreateDialog(props: {
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>{props.errors.priority ?? 'Choose how urgently the goal should be funded.'}</FormHelperText>
+                <FormHelperText>
+                  {props.errors.priority ?? 'Choose how urgently the goal should be funded.'}
+                </FormHelperText>
               </FormControl>
             </Grid>
           </Grid>
 
           <Grid container spacing={1.5}>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Planned monthly contribution"
                 value={props.form.plannedMonthlyContribution}
@@ -142,15 +166,20 @@ export function GoalCreateDialog(props: {
                   props.onFieldChange('plannedMonthlyContribution', event.target.value)
                 }
                 error={Boolean(props.errors.plannedMonthlyContribution)}
-                helperText={props.errors.plannedMonthlyContribution ?? 'Optional. Leave blank to use backend fallback.'}
+                helperText={
+                  props.errors.plannedMonthlyContribution ??
+                  'Optional. Leave blank to use backend fallback.'
+                }
                 fullWidth
                 size="small"
                 type="number"
                 inputProps={{ min: 0, step: '1' }}
-                InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">INR</InputAdornment>,
+                }}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }} >
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Expected annual return %"
                 value={props.form.expectedAnnualReturnPercent}

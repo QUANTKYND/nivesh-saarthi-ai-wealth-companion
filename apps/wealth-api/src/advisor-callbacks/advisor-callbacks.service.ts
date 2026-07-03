@@ -13,29 +13,50 @@ export class AdvisorCallbacksService {
   findByCustomerId(customerId: string): AdvisorCallbackResponse[] {
     return this.repository
       .findAdvisorCallbackRequestsByCustomerId(customerId)
-      .filter((request): request is AdvisorCallbackResponse => Boolean(request.advisorSummary));
+      .filter((request): request is AdvisorCallbackResponse =>
+        Boolean(request.advisorSummary),
+      );
   }
 
   findAll(): AdminAdvisorCallbackListItem[] {
-    return this.repository.findAllAdvisorCallbackRequests().map((request) => ({
-      ...request,
-      customerName: this.repository.findCustomerById(request.customerId).fullName,
-      advisorSummary:
+    return this.repository.findAllAdvisorCallbackRequests().map((request) => {
+      const customer = this.repository.findCustomerById(request.customerId);
+      const advisorSummary =
         request.advisorSummary ??
         this.repository.buildAdvisorCallbackSummary({
           customerId: request.customerId,
           source: request.source,
-        }),
-      latestRecommendationSuitability:
-        request.advisorSummary?.latestRecommendationSuitability ??
-        this.repository.buildAdvisorCallbackSummary({
-          customerId: request.customerId,
-          source: request.source,
-        }).latestRecommendationSuitability,
-    }));
+        });
+      const latestRecommendation =
+        this.repository.findLatestRecommendationForCustomer(request.customerId);
+      const latestChatMessage = this.repository
+        .findAdvisorChatMessagesByCustomerId(request.customerId)
+        .at(-1);
+
+      return {
+        ...request,
+        customerName: customer.fullName,
+        customerSummary: `${customer.fullName} · ${customer.city} · ${customer.occupation}`,
+        advisorSummary,
+        latestRecommendationSuitability:
+          advisorSummary.latestRecommendationSuitability,
+        latestRecommendationSummary: latestRecommendation
+          ? `${latestRecommendation.suitability} · ${
+              latestRecommendation.recommendedPlan?.name ??
+              latestRecommendation.nextBestAction.label
+            }`
+          : null,
+        latestChatSummary: latestChatMessage
+          ? `${latestChatMessage.role}: ${latestChatMessage.message.slice(0, 120)}`
+          : null,
+      };
+    });
   }
 
-  create(customerId: string, request: CreateAdvisorCallbackRequest): AdvisorCallbackResponse {
+  create(
+    customerId: string,
+    request: CreateAdvisorCallbackRequest,
+  ): AdvisorCallbackResponse {
     if (!request.preferredDate?.trim()) {
       throw new BadRequestException('preferredDate is required');
     }

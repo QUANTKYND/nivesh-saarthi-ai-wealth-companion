@@ -2,10 +2,14 @@ import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import {
   AppBar,
   Box,
+  Button,
   CssBaseline,
   Grid,
+  Paper,
   Stack,
   ThemeProvider,
+  ToggleButton,
+  ToggleButtonGroup,
   Toolbar,
   Typography,
 } from '@mui/material';
@@ -36,6 +40,7 @@ import { GoalsPanel } from './components/goals/GoalsPanel';
 import { RiskProfileWizard } from './components/risk-profile/RiskProfileWizard';
 import { AdvisorCallbackDialog } from './components/callbacks/AdvisorCallbackDialog';
 import { AdvisorCallbackAdminPanel } from './components/callbacks/AdvisorCallbackAdminPanel';
+import { DemoGuidePanel } from './components/demo/DemoGuidePanel';
 import { theme } from './theme';
 import type { GoalFormErrors, GoalFormState } from './types/goalForm';
 import { isNotFound } from './utils/errors';
@@ -48,7 +53,10 @@ function App() {
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
   const [isRiskWizardOpen, setIsRiskWizardOpen] = useState(false);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
-  const [callbackSource, setCallbackSource] = useState<'RECOMMENDATION' | 'CHAT' | 'MANUAL'>('MANUAL');
+  const [activeView, setActiveView] = useState<'customer' | 'advisor'>('customer');
+  const [callbackSource, setCallbackSource] = useState<'RECOMMENDATION' | 'CHAT' | 'MANUAL'>(
+    'MANUAL',
+  );
   const [goalForm, setGoalForm] = useState<GoalFormState>(() => createBlankGoalForm());
   const [goalFormErrors, setGoalFormErrors] = useState<GoalFormErrors>({});
   const [chatDraft, setChatDraft] = useState('');
@@ -84,7 +92,7 @@ function App() {
   });
   const resolvedSelectedGoalId = goalsQuery.data?.some((goal) => goal.id === selectedGoalId)
     ? selectedGoalId
-    : goalsQuery.data?.[0]?.id ?? '';
+    : (goalsQuery.data?.[0]?.id ?? '');
   const selectedGoal = useMemo(
     () => goalsQuery.data?.find((goal) => goal.id === resolvedSelectedGoalId) ?? null,
     [goalsQuery.data, resolvedSelectedGoalId],
@@ -107,6 +115,11 @@ function App() {
   const advisorChatQuery = useQuery({
     queryKey: ['advisor-chat-messages', activeCustomerId],
     queryFn: () => wealthApi.getAdvisorChatMessages(activeCustomerId),
+    enabled: Boolean(activeCustomerId),
+  });
+  const advisorCallbacksQuery = useQuery({
+    queryKey: ['advisor-callbacks', activeCustomerId],
+    queryFn: () => wealthApi.getAdvisorCallbacks(activeCustomerId),
     enabled: Boolean(activeCustomerId),
   });
   const sendChatMutation = useMutation({
@@ -221,6 +234,12 @@ function App() {
     recommendationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleAskDemoCapacity = () => {
+    setActiveView('customer');
+    setIsChatOpen(true);
+    handleSendChatMessage('Can I invest Rs 10,000 per month?');
+  };
+
   const handleActionCard = (actionCard: AdvisorChatActionCard) => {
     const target =
       actionCard.type === 'OPEN_SPENDING_INSIGHTS'
@@ -250,7 +269,13 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ height: '100vh', bgcolor: 'background.default' }}>
+      <Box
+        sx={{
+          height: '100vh',
+          bgcolor: 'background.default',
+          background: 'linear-gradient(180deg, rgba(18,76,99,0.08) 0%, rgba(245,247,248,0) 280px)',
+        }}
+      >
         <Scrollbars>
           <AppBar
             position="sticky"
@@ -273,10 +298,10 @@ function App() {
               <AutoGraphIcon color="primary" />
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="subtitle1" fontWeight={800} noWrap>
-                  Nivesh Saarthi
+                  Digital Bank
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>
-                  Digital Wealth Advisor
+                  Nivesh Saarthi Wealth Advisor
                 </Typography>
               </Box>
 
@@ -286,130 +311,188 @@ function App() {
                 isLoading={customersQuery.isLoading}
                 onChange={handleCustomerChange}
               />
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={activeView}
+                onChange={(_, value: 'customer' | 'advisor' | null) => {
+                  if (value) {
+                    setActiveView(value);
+                    setIsChatOpen(false);
+                  }
+                }}
+                sx={{ bgcolor: 'background.paper' }}
+              >
+                <ToggleButton value="customer">Customer</ToggleButton>
+                <ToggleButton value="advisor">Advisor</ToggleButton>
+              </ToggleButtonGroup>
             </Toolbar>
           </AppBar>
 
-          <Grid container spacing={3} p={3}>
-            <Grid size={{ xs: 12 }}>
-              <HeaderBand
-                customer={activeCustomer}
-                profile={wealthProfileQuery.data}
-                isLoading={customersQuery.isLoading || wealthProfileQuery.isLoading}
+          {activeView === 'customer' ? (
+            <>
+              <Grid container spacing={3} p={{ xs: 2, md: 3 }} sx={{ pb: { xs: 11, md: 4 } }}>
+                <Grid size={{ xs: 12 }}>
+                  <HeaderBand
+                    customer={activeCustomer}
+                    profile={wealthProfileQuery.data}
+                    isLoading={customersQuery.isLoading || wealthProfileQuery.isLoading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <DemoGuidePanel
+                    customer={activeCustomer}
+                    hasGoals={(goalsQuery.data?.length ?? 0) > 0}
+                    riskProfile={riskProfileQuery.data}
+                    hasRecommendations={(recommendationsQuery.data?.length ?? 0) > 0}
+                    hasAdvisorCallbacks={(advisorCallbacksQuery.data?.length ?? 0) > 0}
+                    onAskCapacity={handleAskDemoCapacity}
+                    onOpenGoals={() =>
+                      goalsSectionRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      })
+                    }
+                    onOpenRiskProfile={openRiskWizard}
+                    onOpenRecommendations={() =>
+                      recommendationsSectionRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      })
+                    }
+                    onRequestCallback={() => openCallbackDialog('MANUAL')}
+                    onOpenAdmin={() => setActiveView('advisor')}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <AvatarAdvisorCard
+                    profile={wealthProfileQuery.data}
+                    goals={goalsQuery.data}
+                    riskProfile={riskProfileQuery.data}
+                    recommendations={recommendationsQuery.data}
+                    onOpenChat={openChat}
+                  />
+                </Grid>
+                <Grid size={12}>
+                  <SectionStatus
+                    isLoading={wealthProfileQuery.isLoading}
+                    error={wealthProfileQuery.error}
+                    onRetry={() => void wealthProfileQuery.refetch()}
+                    label="wealth profile"
+                  >
+                    {wealthProfileQuery.data ? (
+                      <WealthOverview profile={wealthProfileQuery.data} />
+                    ) : (
+                      <EmptyState title="No wealth profile available" />
+                    )}
+                  </SectionStatus>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 7 }}>
+                  <SectionStatus
+                    isLoading={spendingInsightsQuery.isLoading}
+                    error={spendingInsightsQuery.error}
+                    onRetry={() => void spendingInsightsQuery.refetch()}
+                    label="spending insights"
+                  >
+                    <Box ref={spendingSectionRef}>
+                      {spendingInsightsQuery.data ? (
+                        <SpendingInsightsPanel insights={spendingInsightsQuery.data} />
+                      ) : (
+                        <EmptyState title="No spending insights available" />
+                      )}
+                    </Box>
+                  </SectionStatus>
+                </Grid>
+
+                <Grid size={{ xs: 12, lg: 5 }}>
+                  <Stack spacing={3}>
+                    <SectionStatus
+                      isLoading={goalsQuery.isLoading}
+                      error={goalsQuery.error}
+                      onRetry={() => void goalsQuery.refetch()}
+                      label="goals"
+                    >
+                      <Box ref={goalsSectionRef}>
+                        <GoalsPanel
+                          goals={goalsQuery.data ?? []}
+                          selectedGoalId={selectedGoalId}
+                          selectedGoal={selectedGoal}
+                          projection={goalProjectionQuery.data}
+                          isProjectionLoading={goalProjectionQuery.isLoading}
+                          projectionError={goalProjectionQuery.error}
+                          isCreatingGoal={createGoalMutation.isPending}
+                          createGoalError={createGoalMutation.error}
+                          onOpenCreateGoal={openGoalDialog}
+                          onSelectGoal={setSelectedGoalId}
+                          onRetryProjection={() => void goalProjectionQuery.refetch()}
+                          onUseGoalForRecommendation={handleUseGoalForRecommendation}
+                        />
+                      </Box>
+                    </SectionStatus>
+
+                    <SectionStatus
+                      isLoading={riskProfileQuery.isLoading}
+                      error={isNotFound(riskProfileQuery.error) ? null : riskProfileQuery.error}
+                      onRetry={() => void riskProfileQuery.refetch()}
+                      label="risk profile"
+                    >
+                      <Box ref={riskSectionRef}>
+                        <RiskProfileStatus
+                          riskProfile={riskProfileQuery.data}
+                          onOpenWizard={openRiskWizard}
+                        />
+                      </Box>
+                    </SectionStatus>
+
+                    <SectionStatus
+                      isLoading={recommendationsQuery.isLoading}
+                      error={recommendationsQuery.error}
+                      onRetry={() => void recommendationsQuery.refetch()}
+                      label="recommendations"
+                    >
+                      <Box ref={recommendationsSectionRef}>
+                        <RecommendationPreview
+                          customerId={activeCustomerId}
+                          goals={goalsQuery.data ?? []}
+                          riskProfile={riskProfileQuery.data}
+                          recommendations={recommendationsQuery.data ?? []}
+                          selectedGoal={selectedGoal}
+                          onSelectGoal={setSelectedGoalId}
+                          onCreateGoal={openGoalDialog}
+                          onTakeRiskProfile={openRiskWizard}
+                          onOpenAdvisorCallback={() => {
+                            openCallbackDialog('RECOMMENDATION');
+                          }}
+                        />
+                      </Box>
+                    </SectionStatus>
+                  </Stack>
+                </Grid>
+              </Grid>
+              <AvatarChatLauncher
+                isOpen={isChatOpen}
+                hasMessages={(advisorChatQuery.data?.length ?? 0) > 0}
+                onOpen={openChat}
               />
+            </>
+          ) : (
+            <Grid container spacing={3} p={{ xs: 2, md: 3 }}>
+              <Grid size={{ xs: 12 }}>
+                <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 2 }}>
+                  <Stack spacing={0.75}>
+                    <Typography variant="h2">Advisor operations workspace</Typography>
+                    <Typography color="text.secondary">
+                      Review callback requests, customer context, recommendation summaries, and
+                      latest advisor chat summaries before contacting the customer.
+                    </Typography>
+                  </Stack>
+                </Paper>
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <AdvisorCallbackAdminPanel />
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12 }}>
-              <AvatarAdvisorCard
-                profile={wealthProfileQuery.data}
-                goals={goalsQuery.data}
-                riskProfile={riskProfileQuery.data}
-                recommendations={recommendationsQuery.data}
-                onOpenChat={openChat}
-              />
-            </Grid>
-            <Grid size={12}>
-              <SectionStatus
-                isLoading={wealthProfileQuery.isLoading}
-                error={wealthProfileQuery.error}
-                onRetry={() => void wealthProfileQuery.refetch()}
-                label="wealth profile"
-              >
-                {wealthProfileQuery.data ? (
-                  <WealthOverview profile={wealthProfileQuery.data} />
-                ) : (
-                  <EmptyState title="No wealth profile available" />
-                )}
-              </SectionStatus>
-            </Grid>
-            <Grid size={{ xs: 12, lg: 7 }}>
-              <SectionStatus
-                isLoading={spendingInsightsQuery.isLoading}
-                error={spendingInsightsQuery.error}
-                onRetry={() => void spendingInsightsQuery.refetch()}
-                label="spending insights"
-              >
-                <Box ref={spendingSectionRef}>
-                  {spendingInsightsQuery.data ? (
-                    <SpendingInsightsPanel insights={spendingInsightsQuery.data} />
-                  ) : (
-                    <EmptyState title="No spending insights available" />
-                  )}
-                </Box>
-              </SectionStatus>
-            </Grid>
-
-            <Grid size={{ xs: 12, lg: 5 }}>
-              <Stack spacing={3}>
-                <SectionStatus
-                  isLoading={goalsQuery.isLoading}
-                  error={goalsQuery.error}
-                  onRetry={() => void goalsQuery.refetch()}
-                  label="goals"
-                >
-                  <Box ref={goalsSectionRef}>
-                    <GoalsPanel
-                      goals={goalsQuery.data ?? []}
-                      selectedGoalId={selectedGoalId}
-                      selectedGoal={selectedGoal}
-                      projection={goalProjectionQuery.data}
-                      isProjectionLoading={goalProjectionQuery.isLoading}
-                      projectionError={goalProjectionQuery.error}
-                      isCreatingGoal={createGoalMutation.isPending}
-                      createGoalError={createGoalMutation.error}
-                      onOpenCreateGoal={openGoalDialog}
-                      onSelectGoal={setSelectedGoalId}
-                      onRetryProjection={() => void goalProjectionQuery.refetch()}
-                      onUseGoalForRecommendation={handleUseGoalForRecommendation}
-                    />
-                  </Box>
-                </SectionStatus>
-
-                <SectionStatus
-                  isLoading={riskProfileQuery.isLoading}
-                  error={isNotFound(riskProfileQuery.error) ? null : riskProfileQuery.error}
-                  onRetry={() => void riskProfileQuery.refetch()}
-                  label="risk profile"
-                >
-                  <Box ref={riskSectionRef}>
-                    <RiskProfileStatus
-                      riskProfile={riskProfileQuery.data}
-                      onOpenWizard={openRiskWizard}
-                    />
-                  </Box>
-                </SectionStatus>
-
-                <SectionStatus
-                  isLoading={recommendationsQuery.isLoading}
-                  error={recommendationsQuery.error}
-                  onRetry={() => void recommendationsQuery.refetch()}
-                  label="recommendations"
-                >
-                  <Box ref={recommendationsSectionRef}>
-                <RecommendationPreview
-                  customerId={activeCustomerId}
-                  goals={goalsQuery.data ?? []}
-                  riskProfile={riskProfileQuery.data}
-                  recommendations={recommendationsQuery.data ?? []}
-                  selectedGoal={selectedGoal}
-                  onSelectGoal={setSelectedGoalId}
-                  onCreateGoal={openGoalDialog}
-                  onTakeRiskProfile={openRiskWizard}
-                  onOpenAdvisorCallback={() => {
-                    openCallbackDialog('RECOMMENDATION');
-                  }}
-                />
-              </Box>
-            </SectionStatus>
-            <Grid size={{ xs: 12 }}>
-              <AdvisorCallbackAdminPanel />
-            </Grid>
-              </Stack>
-            </Grid>
-          </Grid>
-          <AvatarChatLauncher
-            isOpen={isChatOpen}
-            hasMessages={(advisorChatQuery.data?.length ?? 0) > 0}
-            onOpen={openChat}
-          />
+          )}
 
           {isChatOpen ? (
             <AvatarChatPopup onClose={() => setIsChatOpen(false)}>
@@ -464,7 +547,10 @@ function App() {
               }}
               onUseRecommendations={() => {
                 setIsRiskWizardOpen(false);
-                recommendationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                recommendationsSectionRef.current?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                });
               }}
             />
           ) : null}
@@ -474,9 +560,56 @@ function App() {
               open={isCallbackDialogOpen}
               onClose={() => setIsCallbackDialogOpen(false)}
               source={callbackSource}
+              onCreated={() => {
+                void queryClient.invalidateQueries({
+                  queryKey: ['advisor-callbacks', activeCustomerId],
+                });
+                void queryClient.invalidateQueries({ queryKey: ['admin-advisor-callbacks'] });
+              }}
             />
           ) : null}
         </Scrollbars>
+        <Paper
+          elevation={8}
+          sx={{
+            display: { xs: activeView === 'customer' ? 'block' : 'none', md: 'none' },
+            position: 'fixed',
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: 1200,
+            borderRadius: 2,
+            p: 0.75,
+          }}
+        >
+          <Stack direction="row" spacing={0.75} justifyContent="space-between">
+            <Button
+              size="small"
+              onClick={() =>
+                goalsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            >
+              Goals
+            </Button>
+            <Button size="small" onClick={openRiskWizard}>
+              Risk
+            </Button>
+            <Button
+              size="small"
+              onClick={() =>
+                recommendationsSectionRef.current?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                })
+              }
+            >
+              Plan
+            </Button>
+            <Button size="small" onClick={openChat}>
+              Chat
+            </Button>
+          </Stack>
+        </Paper>
       </Box>
     </ThemeProvider>
   );

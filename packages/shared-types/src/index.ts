@@ -221,7 +221,10 @@ export interface AdvisorCallbackResponse extends AdvisorCallbackRequest {
 
 export interface AdminAdvisorCallbackListItem extends AdvisorCallbackResponse {
   customerName: string;
+  customerSummary: string;
   latestRecommendationSuitability: RecommendationSuitability | null;
+  latestRecommendationSummary: string | null;
+  latestChatSummary: string | null;
 }
 
 export type {

@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ComplianceGuardrailService } from '../compliance/compliance-guardrail.service';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
 import { SpendingInsightsCalculatorService } from '../spending-insights/spending-insights-calculator.service';
 import { SpendingInsightsService } from '../spending-insights/spending-insights.service';
@@ -15,6 +16,7 @@ function createController() {
         repository,
         new SpendingInsightsCalculatorService(),
       ),
+      new ComplianceGuardrailService(),
     ),
   );
 }

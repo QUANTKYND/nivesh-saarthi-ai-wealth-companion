@@ -25,6 +25,13 @@ Aliases are defined in the root `tsconfig.base.json`:
 - `@wealth/api/*`
 - `@wealth/shared-types`
 - `@wealth/shared-types/*`
+
+## Demo Experience
+
+The frontend presents the advisor inside a mobile-first bank shell. The dashboard is the primary workspace, with a persona switcher for the three seeded customers and a guided demo panel that routes evaluators through avatar chat, goals, risk profiling, recommendations, advisor callback, and the admin handoff summary.
+
+All demo journey data is loaded from backend APIs. The frontend does not calculate financial recommendations, risk categories, or compliance outcomes.
+
 # Compliance Layer
 
 The MVP centralizes safety checks in `ComplianceGuardrailService` so chat, recommendation, and handoff flows can share a single policy surface.

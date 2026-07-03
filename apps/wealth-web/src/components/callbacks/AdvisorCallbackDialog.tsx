@@ -1,4 +1,17 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { CreateAdvisorCallbackRequest } from '@wealth/shared-types';
@@ -9,6 +22,7 @@ export function AdvisorCallbackDialog(props: {
   open: boolean;
   onClose: () => void;
   source?: 'RECOMMENDATION' | 'CHAT' | 'MANUAL';
+  onCreated?: () => void;
 }) {
   const [form, setForm] = useState<CreateAdvisorCallbackRequest>({
     preferredDate: '',
@@ -31,13 +45,19 @@ export function AdvisorCallbackDialog(props: {
     mutation.mutate(form, {
       onSuccess: () => {
         setForm({ preferredDate: '', preferredTimeWindow: '', topic: '', source: props.source });
+        props.onCreated?.();
       },
     });
   };
 
   return (
     <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Request advisor callback</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        Request advisor callback
+        <IconButton aria-label="Close callback dialog" onClick={props.onClose} size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {mutation.isSuccess ? (
@@ -57,18 +77,24 @@ export function AdvisorCallbackDialog(props: {
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={form.preferredDate}
-                onChange={(event) => setForm((current) => ({ ...current, preferredDate: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, preferredDate: event.target.value }))
+                }
               />
               <TextField
                 label="Preferred time window"
                 value={form.preferredTimeWindow}
-                onChange={(event) => setForm((current) => ({ ...current, preferredTimeWindow: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, preferredTimeWindow: event.target.value }))
+                }
                 placeholder="16:00-18:00"
               />
               <TextField
                 label="Topic"
                 value={form.topic}
-                onChange={(event) => setForm((current) => ({ ...current, topic: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, topic: event.target.value }))
+                }
                 placeholder="Education goal and recommendation review"
                 multiline
                 minRows={2}
@@ -82,7 +108,11 @@ export function AdvisorCallbackDialog(props: {
       <DialogActions>
         <Button onClick={props.onClose}>Close</Button>
         {!mutation.isSuccess ? (
-          <Button variant="contained" onClick={handleSubmit} disabled={mutation.isPending || Boolean(validationError)}>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={mutation.isPending || Boolean(validationError)}
+          >
             {mutation.isPending ? 'Submitting...' : 'Submit request'}
           </Button>
         ) : null}

@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { SubmitRiskProfileRequest } from '@wealth/shared-types';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
 import { RiskProfileScoringService } from './risk-profile-scoring.service';
 import { RiskProfilesController } from './risk-profiles.controller';
@@ -25,10 +26,12 @@ describe('RiskProfilesController', () => {
   let controller: RiskProfilesController;
 
   beforeEach(() => {
+    const repository = new InMemoryWealthRepository();
     controller = new RiskProfilesController(
       new RiskProfilesService(
-        new InMemoryWealthRepository(),
+        repository,
         new RiskProfileScoringService(),
+        new AuditLogsService(repository),
       ),
     );
   });

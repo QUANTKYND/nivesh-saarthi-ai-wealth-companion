@@ -23,7 +23,9 @@ export class AdvisorCallbacksController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create an advisor callback request for a customer' })
+  @ApiOperation({
+    summary: 'Create an advisor callback request for a customer',
+  })
   create(
     @Param('customerId') customerId: string,
     @Body() request: CreateAdvisorCallbackRequest,
@@ -35,7 +37,9 @@ export class AdvisorCallbacksController {
 @ApiTags('advisor-callbacks')
 @Controller('admin/advisor-callbacks')
 export class AdminAdvisorCallbacksController {
-  constructor(private readonly advisorCallbacksService: AdvisorCallbacksService) {}
+  constructor(
+    private readonly advisorCallbacksService: AdvisorCallbacksService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List all advisor callback requests for advisors' })

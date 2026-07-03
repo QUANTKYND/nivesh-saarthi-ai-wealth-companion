@@ -26,7 +26,10 @@ export class RecommendationsService {
     customerId: string,
     request: GenerateRecommendationRequest,
   ): RecommendationResult {
-    const result = this.recommendationEngineService.generate(customerId, request);
+    const result = this.recommendationEngineService.generate(
+      customerId,
+      request,
+    );
     this.auditLogsService.create({
       customerId,
       action: 'recommendation_generated',
