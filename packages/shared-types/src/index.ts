@@ -1,3 +1,6 @@
+import type { RecommendationSuitability } from './recommendation-engine.js';
+import type { RiskProfileCategory } from './risk-profile.js';
+
 export type ApiStatus = 'ok' | 'error';
 
 export interface ApiEnvelope<TData = unknown> {
@@ -180,6 +183,17 @@ export interface AuditLog {
 
 export type AdvisorCallbackStatus = 'requested' | 'scheduled' | 'completed' | 'cancelled';
 
+export type AdvisorCallbackSource = 'RECOMMENDATION' | 'CHAT' | 'MANUAL';
+
+export interface AdvisorCallbackAdvisorSummary {
+  customerName: string;
+  riskProfile: RiskProfileCategory | null;
+  primaryGoal: string | null;
+  latestRecommendationSuitability: RecommendationSuitability | null;
+  summary: string;
+  keyDiscussionPoints: string[];
+}
+
 export interface AdvisorCallbackRequest {
   id: string;
   customerId: string;
@@ -188,6 +202,24 @@ export interface AdvisorCallbackRequest {
   topic: string;
   status: AdvisorCallbackStatus;
   createdAt: string;
+  source?: AdvisorCallbackSource;
+  advisorSummary?: AdvisorCallbackAdvisorSummary;
+}
+
+export interface CreateAdvisorCallbackRequest {
+  preferredDate: string;
+  preferredTimeWindow: string;
+  topic: string;
+  source?: AdvisorCallbackSource;
+}
+
+export interface AdvisorCallbackResponse extends AdvisorCallbackRequest {
+  advisorSummary: AdvisorCallbackAdvisorSummary;
+}
+
+export interface AdminAdvisorCallbackListItem extends AdvisorCallbackResponse {
+  customerName: string;
+  latestRecommendationSuitability: RecommendationSuitability | null;
 }
 
 export type {

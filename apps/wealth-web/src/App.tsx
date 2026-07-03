@@ -34,6 +34,8 @@ import { WealthOverview } from './components/dashboard/WealthOverview';
 import { GoalCreateDialog } from './components/goals/GoalCreateDialog';
 import { GoalsPanel } from './components/goals/GoalsPanel';
 import { RiskProfileWizard } from './components/risk-profile/RiskProfileWizard';
+import { AdvisorCallbackDialog } from './components/callbacks/AdvisorCallbackDialog';
+import { AdvisorCallbackAdminPanel } from './components/callbacks/AdvisorCallbackAdminPanel';
 import { theme } from './theme';
 import type { GoalFormErrors, GoalFormState } from './types/goalForm';
 import { isNotFound } from './utils/errors';
@@ -45,6 +47,8 @@ function App() {
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
   const [isRiskWizardOpen, setIsRiskWizardOpen] = useState(false);
+  const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
+  const [callbackSource, setCallbackSource] = useState<'RECOMMENDATION' | 'CHAT' | 'MANUAL'>('MANUAL');
   const [goalForm, setGoalForm] = useState<GoalFormState>(() => createBlankGoalForm());
   const [goalFormErrors, setGoalFormErrors] = useState<GoalFormErrors>({});
   const [chatDraft, setChatDraft] = useState('');
@@ -181,6 +185,10 @@ function App() {
   const openRiskWizard = () => {
     setIsRiskWizardOpen(true);
   };
+  const openCallbackDialog = (source: 'RECOMMENDATION' | 'CHAT' | 'MANUAL' = 'MANUAL') => {
+    setCallbackSource(source);
+    setIsCallbackDialogOpen(true);
+  };
 
   const handleGoalFieldChange = <K extends keyof GoalFormState>(
     field: K,
@@ -230,6 +238,7 @@ function App() {
     if (actionCard.type === 'REQUEST_ADVISOR_CALLBACK') {
       setChatDraft('Request advisor callback');
       setIsChatOpen(true);
+      openCallbackDialog('CHAT');
       return;
     }
 
@@ -385,12 +394,14 @@ function App() {
                   onCreateGoal={openGoalDialog}
                   onTakeRiskProfile={openRiskWizard}
                   onOpenAdvisorCallback={() => {
-                    setChatDraft('Request advisor callback');
-                    setIsChatOpen(true);
+                    openCallbackDialog('RECOMMENDATION');
                   }}
                 />
               </Box>
             </SectionStatus>
+            <Grid size={{ xs: 12 }}>
+              <AdvisorCallbackAdminPanel />
+            </Grid>
               </Stack>
             </Grid>
           </Grid>
@@ -455,6 +466,14 @@ function App() {
                 setIsRiskWizardOpen(false);
                 recommendationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
+            />
+          ) : null}
+          {activeCustomerId ? (
+            <AdvisorCallbackDialog
+              customerId={activeCustomerId}
+              open={isCallbackDialogOpen}
+              onClose={() => setIsCallbackDialogOpen(false)}
+              source={callbackSource}
             />
           ) : null}
         </Scrollbars>
