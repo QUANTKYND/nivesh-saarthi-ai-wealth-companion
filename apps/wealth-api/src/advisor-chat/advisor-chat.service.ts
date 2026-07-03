@@ -15,12 +15,14 @@ import type {
 } from '@wealth/shared-types';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
 import { SpendingInsightsService } from '../spending-insights/spending-insights.service';
+import { ComplianceGuardrailService } from '../compliance/compliance-guardrail.service';
 
 @Injectable()
 export class AdvisorChatService {
   constructor(
     private readonly repository: InMemoryWealthRepository,
     private readonly spendingInsightsService: SpendingInsightsService,
+    private readonly complianceGuardrailService: ComplianceGuardrailService,
   ) {}
 
   findMessagesByCustomerId(customerId: string): AdvisorChatMessage[] {
@@ -41,6 +43,7 @@ export class AdvisorChatService {
     const customer = this.repository.findCustomerById(request.customerId);
     const createdAt = new Date().toISOString();
     const intent = this.classifyIntent(message);
+    const compliance = this.complianceGuardrailService.evaluate({ message });
 
     const customerMessage = this.repository.createAdvisorChatMessage({
       id: `chat-${customer.id}-${Date.now()}-customer`,
@@ -68,6 +71,18 @@ export class AdvisorChatService {
       intent,
       createdAt,
     );
+
+    if (!compliance.allowed) {
+      response.response = compliance.message;
+      response.disclaimer = compliance.requiredDisclaimer;
+      response.actionCards = [
+        {
+          type: 'REQUEST_ADVISOR_CALLBACK',
+          label: 'Request advisor callback',
+          description: 'A certified advisor can review this request safely.',
+        },
+      ];
+    }
 
     const advisorMessage = this.repository.createAdvisorChatMessage({
       id: `chat-${customer.id}-${Date.now()}-advisor`,

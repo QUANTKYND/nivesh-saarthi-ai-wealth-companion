@@ -25,3 +25,15 @@ Aliases are defined in the root `tsconfig.base.json`:
 - `@wealth/api/*`
 - `@wealth/shared-types`
 - `@wealth/shared-types/*`
+# Compliance Layer
+
+The MVP centralizes safety checks in `ComplianceGuardrailService` so chat, recommendation, and handoff flows can share a single policy surface.
+
+Key behaviors:
+
+- Blocks crypto, stock-tip, and guaranteed-return queries.
+- Requires risk profile and goal context before market-linked recommendations.
+- Enforces bank-approved disclaimers on recommendation responses.
+- Emits audit logs for customer-facing advisor workflows.
+
+The compliance layer is intentionally deterministic and does not rely on an LLM. It is used to keep supportable advice inside the approved product set and to route complex cases to a human advisor.

@@ -4,6 +4,7 @@ import type {
   Recommendation,
   RecommendationResult,
 } from '@wealth/shared-types';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
 import { RecommendationEngineService } from './recommendation-engine.service';
 
@@ -12,6 +13,7 @@ export class RecommendationsService {
   constructor(
     private readonly repository: InMemoryWealthRepository,
     private readonly recommendationEngineService: RecommendationEngineService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   findByCustomerId(
@@ -24,6 +26,19 @@ export class RecommendationsService {
     customerId: string,
     request: GenerateRecommendationRequest,
   ): RecommendationResult {
-    return this.recommendationEngineService.generate(customerId, request);
+    const result = this.recommendationEngineService.generate(customerId, request);
+    this.auditLogsService.create({
+      customerId,
+      action: 'recommendation_generated',
+      actor: 'system',
+      description: 'Recommendation was generated and recorded for audit trail.',
+      metadata: {
+        goalId: result.goalId,
+        suitability: result.suitability,
+      },
+      id: `audit-${customerId}-${Date.now()}-recommendation`,
+      createdAt: new Date().toISOString(),
+    });
+    return result;
   }
 }

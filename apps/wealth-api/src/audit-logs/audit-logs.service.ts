@@ -9,4 +9,8 @@ export class AuditLogsService {
   findByCustomerId(customerId: string): AuditLog[] {
     return this.repository.findAuditLogsByCustomerId(customerId);
   }
+
+  create(auditLog: AuditLog): AuditLog {
+    return this.repository.createAuditLog(auditLog);
+  }
 }

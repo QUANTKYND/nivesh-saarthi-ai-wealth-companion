@@ -32,8 +32,8 @@
 - [x] Risk profile wizard frontend.
 - [x] Recommendation review frontend.
 - [x] Human advisor callback flow.
+- [x] Audit and compliance review UI.
 
 ## Deferred Milestones
 
 - [x] Goal planner frontend.
-- [ ] Audit and compliance review UI.

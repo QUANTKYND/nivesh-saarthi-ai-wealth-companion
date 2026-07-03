@@ -166,9 +166,11 @@ export interface AdvisorChatMessage {
 export type AuditLogAction =
   | 'customer_profile_viewed'
   | 'recommendation_viewed'
+  | 'recommendation_generated'
   | 'advisor_chat_message_recorded'
   | 'advisor_chat_response_generated'
   | 'advisor_chat_guardrail_blocked'
+  | 'risk_profile_submitted'
   | 'advisor_callback_requested';
 
 export interface AuditLog {
@@ -281,6 +283,14 @@ export type {
   SubmitRiskProfileAnswer,
   SubmitRiskProfileRequest,
 } from './risk-profile.js';
+
+export type {
+  ComplianceCheckInput,
+  ComplianceGuardrailResult,
+  ComplianceReviewAction,
+  ComplianceSeverity,
+  ComplianceViolationCode,
+} from './compliance.js';
 
 export type {
   GenerateRecommendationRequest,
