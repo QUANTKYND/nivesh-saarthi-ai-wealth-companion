@@ -33,6 +33,10 @@
 - [x] Recommendation review frontend.
 - [x] Human advisor callback flow.
 - [x] Audit and compliance review UI.
+- [x] Mobile-first mock bank shell polish.
+- [x] Guided 5-minute demo mode.
+- [x] Advisor/admin handoff demo view.
+- [x] Demo script and screenshot capture notes.
 
 ## Deferred Milestones
 

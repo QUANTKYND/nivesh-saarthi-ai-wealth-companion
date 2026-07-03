@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ComplianceGuardrailService } from '../compliance/compliance-guardrail.service';
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
 import { SpendingInsightsCalculatorService } from '../spending-insights/spending-insights-calculator.service';
 import { SpendingInsightsService } from '../spending-insights/spending-insights.service';
@@ -13,6 +14,7 @@ function createService(repository = new InMemoryWealthRepository()) {
         repository,
         new SpendingInsightsCalculatorService(),
       ),
+      new ComplianceGuardrailService(),
     ),
   };
 }
@@ -97,9 +99,9 @@ describe('AdvisorChatService', () => {
     });
 
     expect(response.intent).toBe('unsupported_advice');
-    expect(response.response).toContain('cannot provide');
+    expect(response.response).toContain('unsupported advice');
     expect(response.actionCards[0]?.type).toBe('REQUEST_ADVISOR_CALLBACK');
-    expect(response.disclaimer).toContain('does not support');
+    expect(response.disclaimer).toContain('bank-approved wealth guidance');
   });
 
   it('persists customer and advisor messages', () => {

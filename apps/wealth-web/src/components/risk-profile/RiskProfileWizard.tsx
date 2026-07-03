@@ -2,6 +2,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import {
   Alert,
@@ -13,6 +14,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   LinearProgress,
   Paper,
   Radio,
@@ -70,15 +72,13 @@ export function RiskProfileWizard(props: {
   const [submittedProfile, setSubmittedProfile] = useState<RiskProfileResult | null>(null);
   const [hideExistingProfile, setHideExistingProfile] = useState(false);
 
-  const profile = submittedProfile ?? (hideExistingProfile ? null : existingProfileQuery.data ?? null);
+  const profile =
+    submittedProfile ?? (hideExistingProfile ? null : (existingProfileQuery.data ?? null));
   const currentQuestion = questionnaire[activeStep];
   const selectedOptionId = currentQuestion ? answers[currentQuestion.id] : undefined;
   const isComplete = Boolean(profile);
 
-  const steps = useMemo(
-    () => questionnaire.map((question) => question.label),
-    [questionnaire],
-  );
+  const steps = useMemo(() => questionnaire.map((question) => question.label), [questionnaire]);
 
   const resetForRetake = () => {
     setActiveStep(0);
@@ -134,12 +134,17 @@ export function RiskProfileWizard(props: {
               Suitability profiling is required before generating market-linked recommendations.
             </Typography>
           </Box>
-          <Chip
-            label={isComplete ? profile?.category ?? 'Pending' : 'Not a recommendation'}
-            color={isComplete ? 'primary' : 'default'}
-            variant={isComplete ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 800 }}
-          />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip
+              label={isComplete ? (profile?.category ?? 'Pending') : 'Not a recommendation'}
+              color={isComplete ? 'primary' : 'default'}
+              variant={isComplete ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 800 }}
+            />
+            <IconButton aria-label="Close risk profile dialog" onClick={handleClose} size="small">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </Stack>
       </DialogTitle>
 
@@ -168,7 +173,7 @@ export function RiskProfileWizard(props: {
           {profile ? (
             <RiskProfileResultScreen
               profile={profile}
-            onRetake={resetForRetake}
+              onRetake={resetForRetake}
               hasGoals={props.hasGoals}
               onCreateGoal={props.onCreateGoal}
               onUseRecommendations={props.onUseRecommendations}
@@ -188,8 +193,8 @@ export function RiskProfileWizard(props: {
                 <Stack spacing={1.25}>
                   <Typography fontWeight={800}>Why we ask this</Typography>
                   <Typography color="text.secondary">
-                    The answers help determine whether a plan should stay conservative, balanced,
-                    or more growth-oriented. This does not recommend a product by itself.
+                    The answers help determine whether a plan should stay conservative, balanced, or
+                    more growth-oriented. This does not recommend a product by itself.
                   </Typography>
                 </Stack>
               </Paper>
@@ -250,7 +255,9 @@ export function RiskProfileWizard(props: {
               variant="contained"
               onClick={handleNext}
               disabled={!selectedOptionId || submitMutation.isPending}
-              endIcon={activeStep === questionnaire.length - 1 ? <CheckCircleIcon /> : <ArrowForwardIcon />}
+              endIcon={
+                activeStep === questionnaire.length - 1 ? <CheckCircleIcon /> : <ArrowForwardIcon />
+              }
             >
               {submitMutation.isPending
                 ? 'Submitting...'
@@ -299,7 +306,9 @@ function QuestionCard(props: {
                 sx={{
                   borderColor: props.selectedOptionId === option.id ? 'primary.main' : 'divider',
                   bgcolor:
-                    props.selectedOptionId === option.id ? 'rgba(18, 76, 99, 0.05)' : 'background.paper',
+                    props.selectedOptionId === option.id
+                      ? 'rgba(18, 76, 99, 0.05)'
+                      : 'background.paper',
                 }}
               >
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12 }}>
@@ -335,11 +344,20 @@ function RiskProfileResultScreen(props: {
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
           <Chip
             label={props.profile.category}
-            color={props.profile.category === 'AGGRESSIVE' ? 'warning' : props.profile.category === 'MODERATE' ? 'primary' : 'success'}
+            color={
+              props.profile.category === 'AGGRESSIVE'
+                ? 'warning'
+                : props.profile.category === 'MODERATE'
+                  ? 'primary'
+                  : 'success'
+            }
             sx={{ fontWeight: 800 }}
           />
           <Chip label={`${props.profile.scorePercent}%`} variant="outlined" />
-          <Chip label={`Updated ${new Date(props.profile.updatedAt).toLocaleDateString()}`} variant="outlined" />
+          <Chip
+            label={`Updated ${new Date(props.profile.updatedAt).toLocaleDateString()}`}
+            variant="outlined"
+          />
         </Stack>
 
         <Paper variant="outlined" sx={{ p: 2, bgcolor: 'rgba(18, 76, 99, 0.03)' }}>

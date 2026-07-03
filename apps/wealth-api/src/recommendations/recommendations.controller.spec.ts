@@ -1,4 +1,5 @@
 import { InMemoryWealthRepository } from '../data/in-memory-wealth.repository';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { SpendingInsightsCalculatorService } from '../spending-insights/spending-insights-calculator.service';
 import { SpendingInsightsService } from '../spending-insights/spending-insights.service';
 import { RecommendationEngineService } from './recommendation-engine.service';
@@ -20,6 +21,7 @@ describe('RecommendationsController', () => {
             new SpendingInsightsCalculatorService(),
           ),
         ),
+        new AuditLogsService(repository),
       ),
     );
   });

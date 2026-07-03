@@ -1300,11 +1300,18 @@ export class InMemoryWealthRepository {
     source?: AdvisorCallbackSource;
   }): AdvisorCallbackAdvisorSummary {
     const customer = this.findCustomerById(input.customerId);
-    const riskProfile = this.findSubmittedRiskProfileResultByCustomerId(input.customerId);
-    const goal = goals.find((item) => item.customerId === input.customerId) ?? null;
+    const riskProfile = this.findSubmittedRiskProfileResultByCustomerId(
+      input.customerId,
+    );
+    const goal =
+      goals.find((item) => item.customerId === input.customerId) ?? null;
     const latestRecommendation = this.findLatestRecommendationForCustomer(
       input.customerId,
     );
+    const latestChatMessage =
+      advisorChatMessages
+        .filter((item) => item.customerId === input.customerId)
+        .at(-1) ?? null;
 
     const summary = [
       `${customer.fullName} requested an advisor callback${
@@ -1317,23 +1324,32 @@ export class InMemoryWealthRepository {
       latestRecommendation
         ? `Latest recommendation suitability is ${latestRecommendation.suitability}.`
         : 'No recommendation has been generated yet.',
+      latestChatMessage
+        ? `Latest chat context is available from a ${latestChatMessage.role} message.`
+        : 'No advisor chat context is available yet.',
     ].join(' ');
 
     const keyDiscussionPoints = [
-      goal ? 'Confirm goal amount and target date.' : 'Confirm the customer goal and target timeline.',
+      goal
+        ? 'Confirm goal amount and target date.'
+        : 'Confirm the customer goal and target timeline.',
       latestRecommendation
         ? 'Review recommendation suitability, warnings, and next best action.'
         : 'Review savings capacity, goals, and suitability first.',
       riskProfile
         ? 'Confirm the customer understands the current risk profile.'
         : 'Complete suitability profiling before final product guidance.',
+      latestChatMessage
+        ? 'Review recent advisor chat context before calling.'
+        : 'Ask the customer to summarize the latest concern during callback.',
     ];
 
     return {
       customerName: customer.fullName,
       riskProfile: riskProfile?.category ?? null,
       primaryGoal: goal?.name ?? null,
-      latestRecommendationSuitability: latestRecommendation?.suitability ?? null,
+      latestRecommendationSuitability:
+        latestRecommendation?.suitability ?? null,
       summary,
       keyDiscussionPoints,
     };

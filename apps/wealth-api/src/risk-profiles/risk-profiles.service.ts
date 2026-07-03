@@ -48,7 +48,10 @@ export class RiskProfilesService {
       actor: 'customer',
       description: 'Risk profile questionnaire was submitted.',
       createdAt,
-      metadata: { category: result.category, scorePercent: result.scorePercent },
+      metadata: {
+        category: result.category,
+        scorePercent: result.scorePercent,
+      },
     });
 
     return this.repository.upsertRiskProfileResult(result);

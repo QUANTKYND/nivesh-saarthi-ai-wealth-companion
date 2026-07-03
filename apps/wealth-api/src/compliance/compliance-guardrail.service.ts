@@ -15,7 +15,14 @@ export class ComplianceGuardrailService {
     if (this.containsAny(message, ['crypto', 'bitcoin', 'ethereum'])) {
       violations.push('PROHIBITED_CRYPTO_ADVICE');
     }
-    if (this.containsAny(message, ['stock tip', 'buy stock', 'sell stock', 'which stock'])) {
+    if (
+      this.containsAny(message, [
+        'stock tip',
+        'buy stock',
+        'sell stock',
+        'which stock',
+      ])
+    ) {
       violations.push('PROHIBITED_STOCK_TIPS');
     }
     if (this.containsAny(message, ['guaranteed return', 'double my money'])) {

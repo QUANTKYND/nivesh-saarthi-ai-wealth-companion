@@ -1,6 +1,6 @@
 # AI Digital Wealth Management MVP
 
-TypeScript monorepo for an AI-powered digital wealth management MVP. This scaffold sets up the application boundaries, shared types package, local development scripts, linting, formatting, and documentation placeholders. Business features are intentionally not implemented yet.
+TypeScript monorepo for an AI-powered digital wealth management MVP. The app demonstrates a bank-grade avatar wealth advisor with dashboard insights, spending analysis, goals, risk profiling, rule-based recommendations, advisor chat, human handoff, and audit/compliance guardrails.
 
 ## Workspace
 
@@ -22,6 +22,29 @@ Override this for another backend host with:
 ```bash
 VITE_API_BASE_URL=http://localhost:3000/api pnpm dev:web
 ```
+
+Frontend: `http://localhost:5173`
+
+Backend Swagger: `http://localhost:3000/api/docs`
+
+## Demo Flow
+
+Use the in-app demo mode panel to walk through the hackathon story in about 5 minutes:
+
+1. Select Nisha Rao from the persona switcher.
+2. Review the wealth dashboard and avatar insight.
+3. Ask "Can I invest Rs 10,000 per month?"
+4. Review or create a goal.
+5. Review or retake the risk profile.
+6. Generate a recommendation for the selected goal.
+7. Request an advisor callback.
+8. Open the advisor callback admin summary.
+
+Detailed presenter notes are in `docs/demo-script.md`.
+
+## Screenshots
+
+Manual screenshot capture guidance is in `docs/screenshots/README.md`. Capture dashboard, advisor chat, goal planner, risk profile, recommendation, and advisor callback/admin views for submission materials.
 
 ## Scripts
 
