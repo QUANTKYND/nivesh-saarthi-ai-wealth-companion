@@ -33,6 +33,7 @@ import { SpendingInsightsPanel } from './components/dashboard/SpendingInsightsPa
 import { WealthOverview } from './components/dashboard/WealthOverview';
 import { GoalCreateDialog } from './components/goals/GoalCreateDialog';
 import { GoalsPanel } from './components/goals/GoalsPanel';
+import { RiskProfileWizard } from './components/risk-profile/RiskProfileWizard';
 import { theme } from './theme';
 import type { GoalFormErrors, GoalFormState } from './types/goalForm';
 import { isNotFound } from './utils/errors';
@@ -43,6 +44,7 @@ function App() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [isRiskWizardOpen, setIsRiskWizardOpen] = useState(false);
   const [goalForm, setGoalForm] = useState<GoalFormState>(() => createBlankGoalForm());
   const [goalFormErrors, setGoalFormErrors] = useState<GoalFormErrors>({});
   const [chatDraft, setChatDraft] = useState('');
@@ -174,6 +176,10 @@ function App() {
     resetGoalForm();
     setGoalFormErrors({});
     setIsGoalDialogOpen(true);
+  };
+
+  const openRiskWizard = () => {
+    setIsRiskWizardOpen(true);
   };
 
   const handleGoalFieldChange = <K extends keyof GoalFormState>(
@@ -355,7 +361,10 @@ function App() {
                   label="risk profile"
                 >
                   <Box ref={riskSectionRef}>
-                    <RiskProfileStatus riskProfile={riskProfileQuery.data} />
+                    <RiskProfileStatus
+                      riskProfile={riskProfileQuery.data}
+                      onOpenWizard={openRiskWizard}
+                    />
                   </Box>
                 </SectionStatus>
 
@@ -420,6 +429,25 @@ function App() {
             onFieldChange={handleGoalFieldChange}
             onSubmit={handleCreateGoal}
           />
+          {activeCustomerId ? (
+            <RiskProfileWizard
+              customerId={activeCustomerId}
+              isOpen={isRiskWizardOpen}
+              onClose={() => setIsRiskWizardOpen(false)}
+              hasGoals={(goalsQuery.data?.length ?? 0) > 0}
+              onCreateGoal={openGoalDialog}
+              onProfileSaved={(result) => {
+                void queryClient.setQueryData(['risk-profile', result.customerId], result);
+                void queryClient.invalidateQueries({
+                  queryKey: ['risk-profile', result.customerId],
+                });
+              }}
+              onUseRecommendations={() => {
+                setIsRiskWizardOpen(false);
+                recommendationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            />
+          ) : null}
         </Scrollbars>
       </Box>
     </ThemeProvider>
