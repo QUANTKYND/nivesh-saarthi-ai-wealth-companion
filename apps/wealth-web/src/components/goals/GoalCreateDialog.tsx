@@ -67,7 +67,7 @@ export function GoalCreateDialog(props: {
           </FormControl>
 
           <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <TextField
                 label="Target amount"
                 value={props.form.targetAmount}
@@ -81,7 +81,7 @@ export function GoalCreateDialog(props: {
                 InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <TextField
                 label="Current savings"
                 value={props.form.currentSavings}
@@ -98,7 +98,7 @@ export function GoalCreateDialog(props: {
           </Grid>
 
           <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <TextField
                 label="Target date"
                 value={props.form.targetDate}
@@ -112,7 +112,7 @@ export function GoalCreateDialog(props: {
                 inputProps={{ min: getTomorrowDateInputValue() }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <FormControl fullWidth size="small" error={Boolean(props.errors.priority)}>
                 <Select
                   value={props.form.priority}
@@ -134,7 +134,7 @@ export function GoalCreateDialog(props: {
           </Grid>
 
           <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <TextField
                 label="Planned monthly contribution"
                 value={props.form.plannedMonthlyContribution}
@@ -150,7 +150,7 @@ export function GoalCreateDialog(props: {
                 InputProps={{ startAdornment: <InputAdornment position="start">INR</InputAdornment> }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }} >
               <TextField
                 label="Expected annual return %"
                 value={props.form.expectedAnnualReturnPercent}

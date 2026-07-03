@@ -30,10 +30,10 @@
 - [x] Avatar advisor chat UI.
 - [x] Suggested prompts, response action cards, and disclaimer rendering.
 - [x] Risk profile wizard frontend.
+- [x] Recommendation review frontend.
 
 ## Deferred Milestones
 
 - [x] Goal planner frontend.
-- [ ] Recommendation review frontend.
 - [ ] Human advisor callback flow.
 - [ ] Audit and compliance review UI.
